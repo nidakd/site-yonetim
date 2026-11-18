@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Uygulama süper kullanıcı OLMAYAN rolle bağlanır; RLS testleri bunu denetler.
+      DATABASE_URL: postgres://site_yonetim_app:ci@localhost:5432/site_yonetim
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Uygulama rolünü oluştur
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c \
+            "CREATE ROLE site_yonetim_app LOGIN PASSWORD 'ci' CREATEDB NOSUPERUSER NOBYPASSRLS"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE site_yonetim OWNER site_yonetim_app"
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Eksik migration yok
+        run: python manage.py makemigrations --check --dry-run
+      - name: Testler
+        run: pytest -q
+      - name: Canlı ortam güvenlik kontrolü
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          SECRET_KEY: ci-icin-uzun-ve-rastgele-gorunen-bir-anahtar-0123456789-abcdefghij
+          ALLOWED_HOSTS: panel.example.com
+        run: python manage.py check --deploy --fail-level WARNING
