@@ -1,0 +1,13 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Giriş · Site Yönetim{% endblock %}
+{% block heading %}Yönetim paneline giriş{% endblock %}
+{% block subheading %}Site yöneticileri, muhasebe ve denetçiler için{% endblock %}
+{% block card %}
+<form method="post" class="space-y-4" novalidate>{% csrf_token %}
+  {% include "components/form_errors.html" %}
+  {% include "components/field.html" with field=form.email %}
+  {% include "components/field.html" with field=form.password %}
+  <button class="btn-primary w-full">Devam et</button>
+</form>
+{% endblock %}
+{% block below %}<a class="font-medium text-brand-700 hover:underline" href="{% url 'accounts:password_reset' %}">Şifremi unuttum</a>{% endblock %}

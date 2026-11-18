@@ -1,0 +1,6 @@
+{% extends "layouts/auth.html" %}
+{% block heading %}Henüz bir kuruluşa bağlı değilsiniz{% endblock %}
+{% block card %}
+<p class="text-sm">Hesabınız açık ama sizi bir site yönetimine ekleyen olmadı. Kuruluş yöneticinizden sizi eklemesini isteyin.</p>
+<form method="post" action="{% url 'accounts:logout' %}" class="mt-4">{% csrf_token %}<button class="btn-secondary w-full">Çıkış yap</button></form>
+{% endblock %}

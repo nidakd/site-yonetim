@@ -1,0 +1,23 @@
+{% extends "layouts/panel.html" %}
+{% block title %}Güvenlik · Site Yönetim{% endblock %}
+{% block page_title %}Güvenlik{% endblock %}
+{% block page_subtitle %}Hesabınızın giriş ayarları{% endblock %}
+{% block content %}
+<div class="grid gap-5 md:grid-cols-2">
+  <div class="card"><div class="card-body">
+    <div class="flex items-center justify-between"><h2 class="font-semibold">İki adımlı doğrulama</h2><span class="badge-green">Açık</span></div>
+    <p class="mt-2 text-sm text-muted">Girişte şifrenize ek olarak telefonunuzdaki uygulamanın kodu istenir.</p>
+  </div></div>
+  <div class="card"><div class="card-body">
+    <div class="flex items-center justify-between"><h2 class="font-semibold">Yedek kodlar</h2>
+      <span class="{% if backup_remaining > 3 %}badge-gray{% else %}badge-amber{% endif %}">{{ backup_remaining }} kod kaldı</span></div>
+    <p class="mt-2 text-sm text-muted">Yenilerseniz eski kodların hepsi geçersiz olur.</p>
+    <form method="post" class="mt-4">{% csrf_token %}<button class="btn-secondary">Yeni yedek kodlar üret</button></form>
+  </div></div>
+  <div class="card md:col-span-2"><div class="card-body">
+    <h2 class="font-semibold">Şifre</h2>
+    <p class="mt-2 text-sm text-muted">Şifrenizi değiştirmek için e-postanıza sıfırlama bağlantısı gönderebilirsiniz.</p>
+    <a class="btn-secondary mt-4" href="{% url 'accounts:password_reset' %}">Şifre sıfırlama bağlantısı gönder</a>
+  </div></div>
+</div>
+{% endblock %}

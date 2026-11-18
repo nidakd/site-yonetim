@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block body %}
+{% url 'tenancy:dashboard' as dashboard_url %}{% url 'audit:list' as audit_url %}{% url 'accounts:security' as security_url %}
+<div x-data="{ menu: false }" class="min-h-full">
+  {# Mobil üst çubuk #}
+  <header class="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-white px-4 py-3 lg:hidden">
+    <button type="button" class="btn-ghost px-2" @click="menu = true" aria-label="Menüyü aç">
+      <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="font-semibold truncate">{{ current_org.name }}</span>
+    <span class="w-10"></span>
+  </header>
+
+  {# Kenar çubuğu #}
+  <div x-show="menu" x-cloak class="fixed inset-0 z-40 bg-black/30 lg:hidden" @click="menu = false"></div>
+  <aside class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-white transition-transform lg:translate-x-0"
+         :class="menu ? 'translate-x-0' : '-translate-x-full'" x-cloak>
+    <div class="border-b border-line p-4">
+      <div class="flex items-center gap-3">
+        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-600 font-bold text-white">S</div>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold">{{ current_org.name }}</p>
+          <p class="text-xs text-muted">{{ current_org.get_kind_display }}</p>
+        </div>
+      </div>
+      {% if available_organizations|length > 1 %}
+      <div x-data="{ open: false }" class="relative mt-3">
+        <button type="button" class="btn-secondary w-full justify-between" @click="open = !open">Kuruluş değiştir <span aria-hidden="true">▾</span></button>
+        <div x-show="open" x-cloak @click.outside="open = false" class="absolute z-10 mt-1 w-full card p-1">
+          {% for org in available_organizations %}
+          <form method="post" action="{% url 'tenancy:switch_organization' org.pk %}">{% csrf_token %}
+            <button class="nav-link w-full {% if org.pk == current_org.pk %}nav-link-active{% endif %}">{{ org.name }}</button>
+          </form>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Ana menü">
+      <a href="{{ dashboard_url }}" class="nav-link {% if request.path == dashboard_url or '/panel/siteler/' in request.path %}nav-link-active{% endif %}">Siteler</a>
+      {% if can.view_audit %}
+      <a href="{{ audit_url }}" class="nav-link {% if request.path == audit_url %}nav-link-active{% endif %}">İşlem geçmişi</a>
+      {% endif %}
+      <a href="{{ security_url }}" class="nav-link {% if request.path == security_url %}nav-link-active{% endif %}">Güvenlik</a>
+    </nav>
+    <div class="border-t border-line p-4">
+      <p class="truncate text-sm font-medium">{{ request.user.full_name }}</p>
+      <p class="truncate text-xs text-muted">{{ request.user.email }}</p>
+      <form method="post" action="{% url 'accounts:logout' %}" class="mt-3">{% csrf_token %}
+        <button class="btn-secondary w-full">Çıkış yap</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="lg:pl-72">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+      {% include "components/messages.html" %}
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          {% block breadcrumb %}{% endblock %}
+          <h1 class="text-2xl font-bold">{% block page_title %}{% endblock %}</h1>
+          <p class="mt-1 text-sm text-muted">{% block page_subtitle %}{% endblock %}</p>
+        </div>
+        <div class="flex gap-2">{% block page_actions %}{% endblock %}</div>
+      </div>
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}

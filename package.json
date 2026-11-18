@@ -1,0 +1,17 @@
+{
+  "name": "site-yonetim-frontend",
+  "private": true,
+  "description": "Yalnızca CSS derlemesi ve JS bağımlılıklarını kopyalamak için. Derlenen dosyalar depoya dahil.",
+  "scripts": {
+    "build:css": "tailwindcss -i static/src/app.css -o static/css/app.css --minify",
+    "watch:css": "tailwindcss -i static/src/app.css -o static/css/app.css --watch",
+    "vendor": "cp node_modules/htmx.org/dist/htmx.min.js static/vendor/htmx.min.js && cp node_modules/alpinejs/dist/cdn.min.js static/vendor/alpine.min.js",
+    "build": "npm run vendor && npm run build:css"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.1.13",
+    "tailwindcss": "4.1.13",
+    "htmx.org": "2.0.6",
+    "alpinejs": "3.14.9"
+  }
+}

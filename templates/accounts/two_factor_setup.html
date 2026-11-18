@@ -1,0 +1,20 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Doğrulama kurulumu · Site Yönetim{% endblock %}
+{% block heading %}İki adımlı doğrulamayı açın{% endblock %}
+{% block subheading %}Sakin ve muhasebe verisine erişen hesaplar için zorunludur{% endblock %}
+{% block card %}
+<ol class="space-y-5 text-sm">
+  <li><p class="font-semibold">1. Telefonunuza bir kimlik doğrulayıcı uygulaması kurun</p>
+      <p class="text-muted">Google Authenticator, Microsoft Authenticator ya da benzeri.</p></li>
+  <li><p class="font-semibold">2. Bu kodu uygulamayla tarayın</p>
+      <div class="mx-auto mt-3 w-48 rounded-lg bg-white p-2 ring-1 ring-line [&_svg]:h-auto [&_svg]:w-full">{{ qr|safe }}</div>
+      <details class="mt-2 text-muted"><summary class="cursor-pointer">Tarayamıyorum</summary>
+        <p class="mt-1">Uygulamaya şu anahtarı elle girin:</p>
+        <code class="mt-1 block break-all rounded bg-gray-100 p-2 text-xs">{{ secret }}</code></details></li>
+  <li><p class="font-semibold">3. Uygulamanın gösterdiği kodu girin</p>
+    <form method="post" class="mt-2 space-y-3">{% csrf_token %}
+      {% include "components/field.html" with field=form.token %}
+      <button class="btn-primary w-full">Doğrula ve aç</button>
+    </form></li>
+</ol>
+{% endblock %}

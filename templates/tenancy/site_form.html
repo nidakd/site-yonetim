@@ -1,0 +1,21 @@
+{% extends "layouts/panel.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}<a class="text-sm text-muted hover:underline" href="{% url 'tenancy:dashboard' %}">← Siteler</a>{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-2xl" novalidate>{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.name %}
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.city %}
+      {% include "components/field.html" with field=form.district %}
+    </div>
+    {% include "components/field.html" with field=form.address %}
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'tenancy:dashboard' %}">Vazgeç</a>
+    <button class="btn-primary">Kaydet</button>
+  </div>
+</form>
+{% endblock %}

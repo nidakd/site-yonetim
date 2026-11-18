@@ -1,0 +1,14 @@
+{% extends "layouts/panel.html" %}
+{% block title %}{{ site.name }}{% endblock %}
+{% block breadcrumb %}<a class="text-sm text-muted hover:underline" href="{% url 'tenancy:dashboard' %}">← Siteler</a>{% endblock %}
+{% block page_title %}{{ site.name }}{% endblock %}
+{% block page_subtitle %}{% if site.district %}{{ site.district }}, {% endif %}{{ site.city }}{% endblock %}
+{% block page_actions %}{% if can_edit %}<a class="btn-secondary" href="{% url 'tenancy:site_update' site.pk %}">Düzenle</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-3">
+  <div class="card card-body"><p class="text-sm text-muted">Bağımsız bölüm</p><p class="mt-1 text-2xl font-bold">—</p></div>
+  <div class="card card-body"><p class="text-sm text-muted">Bu ay tahsilat</p><p class="mt-1 text-2xl font-bold">—</p></div>
+  <div class="card card-body"><p class="text-sm text-muted">Açık borç</p><p class="mt-1 text-2xl font-bold">—</p></div>
+</div>
+<div class="alert-info mt-6">Bloklar, bağımsız bölümler, kişiler, borçlandırma ve tahsilat bir sonraki aşamada (Faz 1) bu sayfaya eklenecek.</div>
+{% endblock %}

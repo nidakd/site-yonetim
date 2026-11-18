@@ -1,0 +1,14 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Yedek kodlar · Site Yönetim{% endblock %}
+{% block heading %}Yedek kodlarınız{% endblock %}
+{% block subheading %}Telefonunuzu kaybederseniz bu kodlarla giriş yapabilirsiniz{% endblock %}
+{% block card %}
+<div class="alert-warning mb-4">Bu kodlar yalnızca şimdi gösteriliyor. Yazdırın ya da güvenli bir yere kaydedin; her kod bir kez çalışır.</div>
+<ul class="grid grid-cols-2 gap-2 font-mono text-sm">
+  {% for code in codes %}<li class="rounded bg-gray-100 px-3 py-2 text-center">{{ code }}</li>{% endfor %}
+</ul>
+<div class="mt-5 flex gap-2">
+  <button type="button" class="btn-secondary flex-1" onclick="window.print()">Yazdır</button>
+  <a class="btn-primary flex-1" href="{% url 'tenancy:dashboard' %}">Kaydettim, devam et</a>
+</div>
+{% endblock %}

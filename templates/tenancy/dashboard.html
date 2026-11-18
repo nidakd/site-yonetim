@@ -1,0 +1,30 @@
+{% extends "layouts/panel.html" %}
+{% block title %}Siteler · {{ current_org.name }}{% endblock %}
+{% block page_title %}Siteler{% endblock %}
+{% block page_subtitle %}{{ current_org.name }} kuruluşuna bağlı siteler{% endblock %}
+{% block page_actions %}{% if can.create_site and sites %}<a class="btn-primary" href="{% url 'tenancy:site_create' %}">Yeni site</a>{% endif %}{% endblock %}
+{% block content %}
+{% if sites %}
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {% for site in sites %}
+  <a href="{% url 'tenancy:site_detail' site.pk %}" class="card card-body block transition hover:ring-brand-500">
+    <div class="flex items-start justify-between gap-3">
+      <h2 class="font-semibold">{{ site.name }}</h2>
+      {% if site.is_active %}<span class="badge-green">Aktif</span>{% else %}<span class="badge-gray">Pasif</span>{% endif %}
+    </div>
+    <p class="mt-1 text-sm text-muted">{% if site.district %}{{ site.district }}, {% endif %}{{ site.city|default:"Konum girilmedi" }}</p>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card card-body py-14 text-center">
+  <h2 class="text-lg font-semibold">Henüz site yok</h2>
+  {% if can.create_site %}
+  <p class="mx-auto mt-2 max-w-md text-sm text-muted">İlk sitenizi oluşturun. Sonraki adımda bloklar, daireler ve sakinler eklenecek.</p>
+  <a class="btn-primary mt-6" href="{% url 'tenancy:site_create' %}">İlk siteyi oluştur</a>
+  {% else %}
+  <p class="mt-2 text-sm text-muted">Size atanmış bir site bulunmuyor. Kuruluş yöneticinizle iletişime geçin.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
