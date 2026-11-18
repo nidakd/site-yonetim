@@ -1,0 +1,29 @@
+# Ortam ve gizli bilgiler
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+
+# Ön yüz araçları (derlenen CSS ve vendor JS depoya dahildir)
+node_modules/
+
+# Django
+staticfiles/
+media/
+
+# Müşteri verisi asla depoya girmez (KVKK)
+data/
+*.xlsx
+*.xls
+*.csv
+*.sql.gz
+*.dump
+
+.DS_Store
