@@ -407,7 +407,7 @@ staging'de denenebilir bir sürüm olur.
 | Faz | İçerik | Bitti sayılması için |
 | --- | --- | --- |
 | **0. Temel** (1–2 hf) | Yeni depo, Django iskeleti, Docker/yerel ortam, PostgreSQL + RLS, organizasyon/site/üyelik, yönetici girişi + 2FA, denetim izi altyapısı, tasarım sistemi (Tailwind bileşenleri), CI, staging sunucusu | Boş bir site açılıp yönetici giriş yapabiliyor; iki organizasyon birbirini göremiyor (testli) |
-| **1. Çekirdek muhasebe** (3–5 hf) | Yapı (blok/bölüm/arsa payı), kişiler ve tarihli ilişkiler, `domain/` para-dağıtım-eşleştirme fonksiyonları, defter, tahakkuk sihirbazı, tahsilat + makbuz PDF, gider/kasa/banka, bölüm ekstresi, temel raporlar | Pilot sitenin bir ayı baştan sona sistemde yürütülebiliyor; tüm toplamlar defterle tutarlı |
+| **1. Çekirdek muhasebe** (3–5 hf) ✅ [faz-1.md](faz-1.md) | Yapı (blok/bölüm/arsa payı), kişiler ve tarihli ilişkiler, `domain/` para-dağıtım-eşleştirme fonksiyonları, defter, tahakkuk sihirbazı, tahsilat + makbuz PDF, gider/kasa/banka, bölüm ekstresi, temel raporlar | Pilot sitenin bir ayı baştan sona sistemde yürütülebiliyor; tüm toplamlar defterle tutarlı |
 | **2. Kurulum ve sakin** (2–3 hf) | Excel kurulum sihirbazı (aidat_takip), açılış bakiyeleri, sakin portalı (OTP), gizlilik ayarları, e-posta bildirimi | Pilot site 1 saatte kuruluyor; sakinler kendi ekstresini görüyor |
 | **Pilot** (4–8 hf, paralel) | Kendi sitenizde Excel ile paralel çalıştırma, fark raporları, hata düzeltme | İki ay üst üste Excel ile kuruşu kuruşuna aynı sonuç |
 | **3. Satışa hazır** (3–4 hf) | Banka ekstresi eşleştirme, borç hatırlatma SMS'i, gecikme tazminatı, genel kurul raporu, abonelik/deneme, tanıtım sayfası, yasal metinler, destek kanalı | İlk dış müşteri kendi başına kurulum yapabiliyor |
