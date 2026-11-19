@@ -27,7 +27,7 @@ Durum: tamamlandı (19.11.2026) · Plan: [URUN_PLANI.md](URUN_PLANI.md) §3, §5
 | Gider | Kategori (gider hesabı), tedarikçi, belge no, kasa/banka; iptal ters kayıtla. Virman kasa ↔ banka | Plan §5.6 |
 | Raporlar | Site özeti, bölüm ekstresi (yürüyen bakiye, başlangıç tarihli devreden bakiye), borçlular (gecikme günü), kasa/banka, mizan, yevmiye, hesap hareketleri | Plan §6 MVP raporları |
 | Yetki | Yeni yetkiler: `site.view`, `property.manage`, `people.view/manage`, `finance.view`, `billing.manage`, `payments.manage`, `expenses.manage`, `ledger.lock`. Saha görevlisi bölüm/kişi görür, mali ekranları göremez; denetçi okur, yazamaz; siteye özel rol yalnızca kendi sitesinde | Plan §4 |
-| Kiracı | 17 yeni tablonun hepsi `TenantModel` + `enable_rls`; `tests/test_rls.py` zorunlu kılar | Faz 0 kuralı |
+| Kiracı | 19 yeni tablonun hepsi `TenantModel` + `enable_rls`; `tests/test_rls.py` zorunlu kılar | Faz 0 kuralı |
 | KVKK | Denetim izine kişi adı/telefonu yazılmaz (yalnızca "değişti"); borçlular listesi yalnızca yönetime; TCKN alanı yok | Plan §3.2 |
 | Demo | `python manage.py seed_demo --org-name "..." --admin-email ...`: tamamen sentetik bir site | Gerçek kişi verisi depoya girmez |
 
