@@ -9,8 +9,8 @@
 {% if pm %}<a class="btn-secondary" href="{% url 'property:unit_update' site.pk unit.pk %}">Düzenle</a>{% endif %}{% endblock %}
 {% block content %}
 {% site_can 'finance.view' as fin %}{% site_can 'people.manage' as pplm %}{% site_can 'billing.manage' as bill %}{% site_can 'property.manage' as pm %}
-<div class="grid gap-6 lg:grid-cols-3">
-  <div class="space-y-6 lg:col-span-2">
+<div class="grid gap-6 xl:grid-cols-3">
+  <div class="space-y-6 xl:col-span-2">
     {% if fin %}
     <section class="card">
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">

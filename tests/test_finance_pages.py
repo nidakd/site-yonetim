@@ -1,6 +1,7 @@
 """Faz 1 ekranları: her sayfa açılıyor, formlar çalışıyor, yetkiler ve kiracı sınırı korunuyor."""
 
 from datetime import date
+from io import StringIO
 
 import pytest
 from django.urls import reverse
@@ -334,3 +335,28 @@ def test_unit_from_other_site_is_not_found(client, admin_a, org_a, setup):
     other = make_site(org_a, "Diğer Site")
     panel_client(client, admin_a, org_a)
     assert client.get(url("property:unit_detail", other, setup["unit"].pk)).status_code == 404
+
+
+@pytest.mark.django_db
+def test_seed_demo_builds_consistent_site():
+    from django.core.management import call_command
+    from django.db import connection
+
+    from apps.core.context import platform_context
+    from apps.payments.services import advance_balance
+    from apps.reports.services import unit_balances
+    from apps.tenancy.models import Organization, Site
+
+    call_command("seed_demo", "--org-name", "Test Demo", "--admin-email", "seed@example.test", stdout=StringIO())
+    with platform_context():
+        org = Organization.objects.get(name="Test Demo")
+    with tenant_context(org.pk):
+        site = Site.objects.get()
+        assert Unit.objects.filter(site=site).count() == 16
+        balances = unit_balances(site)
+        for unit in Unit.objects.filter(site=site):
+            open_total = sum(c.remaining for c in billing.open_charges(unit))
+            assert balances.get(unit.pk, 0) == open_total - advance_balance(unit)
+        with connection.cursor() as cur:
+            cur.execute("SELECT sum(debit) - sum(credit) FROM ledger_journalline")
+            assert cur.fetchone()[0] == 0

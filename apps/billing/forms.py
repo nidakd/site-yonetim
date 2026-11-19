@@ -21,6 +21,7 @@ class AgreementForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.unit = unit
         self.fields["kind"].widget.attrs["x-model"] = "kind"
+        self.fields["amount"].hide_optional = True
 
     def clean(self):
         data = super().clean()
@@ -86,6 +87,8 @@ class BatchForm(forms.ModelForm):
         self.fields["description"].required = False
         for name in ("block", "unit"):
             self.fields[name].required = False
+        self.fields["method"].choices = ChargeBatch.Method.choices
+        self.fields["amount"].hide_optional = True
         self.fields["method"].widget.attrs["x-model"] = "method"
         self.fields["scope"].widget.attrs["x-model"] = "scope"
 
@@ -110,7 +113,7 @@ class BatchForm(forms.ModelForm):
         if not data.get("description") and data.get("charge_type") and period:
             from apps.core.templatetags.ui import period as period_label
 
-            data["description"] = f"{period_label(period)} {data['charge_type'].name.lower()}"
+            data["description"] = f"{data['charge_type'].name} · {period_label(period)}"
         return data
 
     def save(self, commit=True):
