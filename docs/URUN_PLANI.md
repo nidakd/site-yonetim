@@ -117,9 +117,11 @@ rakamların birebir tuttuğunu kanıtlarız; bu aynı zamanda case study'nin "so
 
 - Bir kullanıcı birden çok sitede farklı rollere sahip olabilir (üyelik tablosu).
 - Bir kişi birden çok bölümün maliki olabilir (iki daire, bir dükkan); tek girişle hepsini görür.
-- Yönetici hesaplarında **iki adımlı doğrulama** (TOTP uygulaması) zorunlu seçenek.
+- Yönetici hesaplarında **iki adımlı doğrulama** (TOTP uygulaması) zorunlu. "Bu cihazı 30 gün
+  hatırla" ile aynı tarayıcıdan kod ayda bir sorulur (şifre her zaman sorulur). Sonraki adım:
+  passkey (Face ID / Touch ID) ile giriş; kod uygulaması yedek olarak kalır.
 
-### 4.1 Sakin girişi (öneri)
+### 4.1 Sakin girişi (karar: 19.11.2026)
 **Telefon + SMS doğrulama kodu (OTP)**, isteğe bağlı şifre:
 1. Yönetici, bölümün malik/kiracı kaydına telefon numarasını girer (Excel'den de gelir).
 2. Sakin giriş ekranına numarasını yazar, SMS ile 6 haneli kod gelir.
@@ -129,7 +131,8 @@ Bu, sizin önerdiğiniz "telefon ile giriş" fikrini güvenli hale getirir: tele
 kanıtlanır, bölümle ilişkisi yöneticinin kaydıyla. Davet koduna gerek kalmaz (kod dağıtma
 derdi biter). Maliyet: her girişte bir SMS; "beni 30 gün hatırla" ve isteğe bağlı şifre ile
 azaltılır. Telefonu olmayan/yaşlı sakin için yönetici "ekstreyi yazdır / WhatsApp'tan gönder"
-kullanır. Alternatif: bugünkü davet kodu + şifre modeli (SMS maliyeti yok). → §13 karar.
+kullanır. Değerlendirilen alternatif (davet kodu + şifre) SMS maliyeti olmasa da sakinler için
+zor bulundu; seçilmedi.
 
 ---
 
@@ -433,9 +436,9 @@ kod için önce test, her hafta staging'e sürüm, her fazın sonunda sizinle de
 | --- | --- | --- |
 | 1 | Teknoloji | **Karar: Django + HTMX + PostgreSQL** (19.11.2026) |
 | 2 | Hedef müşteri sırası | Önce küçük-orta siteler, model firmalara hazır (§2) |
-| 3 | Sakin girişi | Telefon + SMS kodu, isteğe bağlı şifre (§4.1) |
+| 3 | Sakin girişi | **Karar: Telefon + SMS kodu**, "beni hatırla", isteğe bağlı şifre (§4.1) (19.11.2026) |
 | 4 | Barındırma | Türkiye'de sunucu (§3.2) |
-| 5 | Depo | Yeni depo `site-yonetim` yerelde açıldı; GitHub'da private depo bekliyor. Eski depo portfolyo v1 olarak kalır |
+| 5 | Depo | **Karar:** `site-yonetim` GitHub'da private depo (19.11.2026). Eski depo portfolyo v1 olarak kalır |
 | 6 | Şirket ve yasal | Satış öncesi mali müşavir + avukat görüşmesi (§3.3) |
 
 Kararlar netleşince bu belge "onaylı" olur ve Faz 0'ın teknik şartnamesi yazılır.
