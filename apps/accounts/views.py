@@ -3,6 +3,7 @@
 1. E-posta + şifre (kilitleme: e-posta başına 5, IP başına 30 hatalı deneme / 15 dk).
 2. Kullanıcının onaylı doğrulayıcısı varsa: henüz oturum açılmaz, kod sorulur.
    Kod (ya da tek kullanımlık yedek kod) doğruysa oturum açılır.
+   "Bu cihazı hatırla" seçilirse 30 gün boyunca o tarayıcıdan kod sorulmaz (şifre yine sorulur).
 3. Doğrulayıcısı yoksa: oturum açılır ama panel kilitli kalır; önce kurulum yapılır.
 
 Hata mesajları geneldir: e-postanın sistemde olup olmadığı dışarıdan anlaşılmaz.
@@ -68,6 +69,12 @@ def login_view(request):
                 throttle.clear(email)
                 request.session[NEXT_KEY] = str(_safe_next(request, request.GET.get("next")))
                 if services.has_confirmed_totp(user):
+                    if services.trusted_device_for(request, user):
+                        next_url = request.session.pop(NEXT_KEY)
+                        login(request, user)
+                        otp_login(request, TOTPDevice.objects.filter(user=user, confirmed=True).first())
+                        services.audit_for_user(user, "auth.login", {"2fa": "hatırlanan cihaz"})
+                        return redirect(next_url)
                     request.session[PENDING_KEY] = user.pk
                     request.session[PENDING_AT] = time.time()
                     request.session[OTP_TRIES] = 0
@@ -88,6 +95,13 @@ def _throttle_message(user) -> str | None:
     return None
 
 
+def _maybe_trust(request, response, user, form):
+    if form.cleaned_data.get("remember"):
+        device = services.trust_device(request, response, user)
+        services.audit_for_user(user, "auth.device_trusted", {"cihaz": device.label})
+    return response
+
+
 def two_factor_view(request):
     """Kod doğrulama (doğrulayıcısı olan) ya da ilk kurulum (olmayan)."""
     User = get_user_model()
@@ -106,7 +120,7 @@ def two_factor_view(request):
                 otp_login(request, device)
                 request.session["new_backup_codes"] = services.regenerate_backup_codes(request.user)
                 services.audit_for_user(request.user, "auth.2fa_enabled")
-                return redirect("accounts:backup_codes")
+                return _maybe_trust(request, redirect("accounts:backup_codes"), request.user, form)
             else:
                 form.add_error("token", "Kod doğrulanamadı. Telefonunuzun saatinin doğru olduğundan emin olun.")
         return render(
@@ -144,7 +158,7 @@ def two_factor_view(request):
                     "Yedek kod kullandınız; her kod bir kez çalışır. "
                     "Kalan kodlarınızı Güvenlik sayfasından yenileyebilirsiniz.",
                 )
-            return redirect(next_url or settings.LOGIN_REDIRECT_URL)
+            return _maybe_trust(request, redirect(next_url or settings.LOGIN_REDIRECT_URL), user, form)
         request.session[OTP_TRIES] = request.session.get(OTP_TRIES, 0) + 1
         services.audit_for_user(user, "auth.2fa_failed")
         if request.session[OTP_TRIES] >= MAX_OTP_TRIES:
@@ -176,12 +190,24 @@ def logout_view(request):
 
 @panel_view()
 def security_view(request):
+    if request.method == "POST" and request.POST.get("action") == "forget_devices":
+        count = services.revoke_trusted_devices(request.user)
+        services.audit_for_user(request.user, "auth.devices_revoked", {"adet": count})
+        messages.success(request, "Hatırlanan cihazlar silindi. Bu cihazlardan girişte yeniden kod istenecek.")
+        return redirect("accounts:security")
     if request.method == "POST":
         request.session["new_backup_codes"] = services.regenerate_backup_codes(request.user)
         services.audit_for_user(request.user, "auth.backup_codes_regenerated")
         return redirect("accounts:backup_codes")
     remaining = StaticDevice.objects.filter(user=request.user).values_list("token_set__id", flat=True)
-    return render(request, "accounts/security.html", {"backup_remaining": len([r for r in remaining if r])})
+    return render(
+        request,
+        "accounts/security.html",
+        {
+            "backup_remaining": len([r for r in remaining if r]),
+            "trusted_devices": services.active_trusted_devices(request.user),
+        },
+    )
 
 
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
@@ -192,4 +218,6 @@ class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     def form_valid(self, form):
         response = super().form_valid(form)
         services.audit_for_user(form.user, "auth.password_changed")
+        # Şifre değiştiyse (ör. hesabın çalındığı şüphesiyle) hatırlanan cihazlara da güvenilmez.
+        services.revoke_trusted_devices(form.user)
         return response

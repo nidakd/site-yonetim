@@ -49,3 +49,27 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return self.full_name or self.email
+
+
+class TrustedDevice(models.Model):
+    """ "Bu cihazı hatırla": şifre yine sorulur, yalnızca doğrulama kodu atlanır.
+
+    Tarayıcıdaki çerezde `<id>:<gizli değer>` durur; veritabanında gizli değerin yalnızca SHA-256
+    özeti saklanır (veritabanı sızsa bile çerez üretilemez). Şifre değişince ya da kullanıcı
+    Güvenlik sayfasından isterse tüm kayıtlar iptal edilir.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="trusted_devices")
+    token_hash = models.CharField(max_length=64)
+    label = models.CharField("cihaz", max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "güvenilen cihaz"
+        verbose_name_plural = "güvenilen cihazlar"
+
+    def __str__(self) -> str:
+        return f"{self.user} · {self.label}"

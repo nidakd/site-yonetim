@@ -15,6 +15,8 @@ ACTIONS: dict[str, str] = {
     "auth.2fa_failed": "Hatalı doğrulama kodu",
     "auth.backup_codes_regenerated": "Yedek kodlar yenilendi",
     "auth.password_changed": "Şifre değişti",
+    "auth.device_trusted": "Cihaz hatırlandı",
+    "auth.devices_revoked": "Hatırlanan cihazlar silindi",
     "org.created": "Kuruluş oluşturuldu",
     "org.switched": "Kuruluş değiştirildi",
     "member.added": "Üye eklendi",

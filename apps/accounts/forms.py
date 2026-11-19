@@ -20,6 +20,12 @@ class TokenForm(forms.Form):
         ),
     )
 
+    remember = forms.BooleanField(
+        label="Bu cihazı 30 gün hatırla",
+        required=False,
+        help_text="Bu cihazdan girişte yalnızca şifre sorulur. Ortak kullanılan bilgisayarlarda işaretlemeyin.",
+    )
+
     def clean_token(self) -> str:
         return "".join(self.cleaned_data["token"].split()).replace("-", "")
 

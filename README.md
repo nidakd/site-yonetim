@@ -38,7 +38,8 @@ python manage.py runserver
 ```
 
 Bağlantıyla şifre belirlenir, ilk girişte iki adımlı doğrulama kurulur (Google/Microsoft
-Authenticator vb.), sonra panel açılır.
+Authenticator vb.), sonra panel açılır. "Bu cihazı 30 gün hatırla" seçilirse o tarayıcıdan
+yalnızca şifre sorulur; hatırlanan cihazlar Güvenlik sayfasından silinebilir.
 
 CSS ya da şablonlarda Tailwind sınıfı değiştiğinde:
 

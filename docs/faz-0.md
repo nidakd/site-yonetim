@@ -16,6 +16,7 @@ Durum: tamamlandı (19.11.2026) · Plan: [URUN_PLANI.md](URUN_PLANI.md) §11
 | Kullanıcı | Özel `User` (e-posta ile giriş, ileride telefon) | Kullanıcı modeli sonradan değiştirilemez; baştan doğru kuruldu |
 | Şifre | Argon2, en az 10 karakter, yaygın/benzer şifre engeli | Güncel öneri |
 | 2FA | TOTP zorunlu + 10 tek kullanımlık yedek kod | Muhasebe ve kişisel veriye erişen hesaplar |
+| Cihazı hatırla | İsteğe bağlı, 30 gün; çerezde rastgele değer, veritabanında yalnızca SHA-256 özeti; şifre değişince ve Güvenlik sayfasından iptal | Her girişte kod sormak yöneticiyi yorar; şifre yine zorunlu |
 | Kilitleme | E-posta başına 5, IP başına 30 hatalı deneme / 15 dk; 2FA'da 5 hatalı kod girişi bitirir | Kaba kuvvet koruması |
 | Mesajlar | Genel hata metinleri; şifre sıfırlama kayıtlı olmayan e-postayı belli etmez | Kullanıcı varlığı sızmaz |
 | Roller | Kuruluş yöneticisi, site yöneticisi, muhasebe, denetçi, saha görevlisi; kuruluş geneli ya da siteye özel | Plan §4 |

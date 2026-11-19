@@ -5,6 +5,10 @@
 {% block card %}
 <form method="post" class="space-y-4">{% csrf_token %}
   {% include "components/field.html" with field=form.token %}
+  <label class="flex items-start gap-2 text-sm">
+    <input type="checkbox" name="{{ form.remember.html_name }}" id="{{ form.remember.id_for_label }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.remember.value %} checked{% endif %}>
+    <span>{{ form.remember.label }}<span class="help mt-0.5 block">{{ form.remember.help_text }}</span></span>
+  </label>
   <button class="btn-primary w-full">Doğrula</button>
 </form>
 <p class="help mt-4">Telefonunuz yanınızda değilse yedek kodlarınızdan birini girebilirsiniz.</p>

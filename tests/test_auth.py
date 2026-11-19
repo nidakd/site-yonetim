@@ -1,11 +1,16 @@
+from datetime import timedelta
+
 import pytest
 from django.contrib.auth.tokens import default_token_generator
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django_otp.plugins.otp_static.models import StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
+from apps.accounts.models import TrustedDevice
+from apps.accounts.services import device_label
 from apps.audit.models import AuditEvent
 from apps.core.context import platform_context
 
@@ -146,3 +151,94 @@ def test_password_reset_does_not_reveal_unknown_emails(client, admin_a, mailoutb
         response = client.post(reverse("accounts:password_reset"), {"email": email})
         assert response.url == reverse("accounts:password_reset_done")
     assert len(mailoutbox) == 1
+
+
+# ---------------------------------------------------------------- bu cihazı hatırla
+
+
+def login_with_code(client, user, remember):
+    post_login(client, user.email)
+    device = TOTPDevice.objects.get(user=user)
+    data = {"token": totp_now(device)}
+    if remember:
+        data["remember"] = "on"
+    return client.post(TWO_FA, data)
+
+
+def logout(client):
+    client.post(reverse("accounts:logout"))
+
+
+@pytest.mark.django_db
+def test_remembered_device_skips_code_but_not_password(client, admin_a):
+    response = login_with_code(client, admin_a, remember=True)
+    cookie = response.cookies["guvenilen_cihaz"]
+    assert cookie["httponly"] and int(cookie["max-age"]) == 30 * 24 * 3600
+    assert TrustedDevice.objects.get(user=admin_a).token_hash not in cookie.value  # yalnızca özet saklanır
+    logout(client)
+
+    assert "Giriş yapıldı" not in post_login(client, admin_a.email, "yanlis-sifre").content.decode()
+    assert "_auth_user_id" not in client.session  # şifre yine gerekli
+
+    response = post_login(client, admin_a.email)
+    assert response.url == DASH  # kod sorulmadan panel
+    assert client.get(DASH).status_code == 200
+    assert actions()[-1] == "auth.login"
+
+
+@pytest.mark.django_db
+def test_without_remember_code_is_asked_again(client, admin_a):
+    response = login_with_code(client, admin_a, remember=False)
+    assert "guvenilen_cihaz" not in response.cookies
+    logout(client)
+    assert post_login(client, admin_a.email).url == TWO_FA
+
+
+@pytest.mark.django_db
+def test_cookie_of_another_user_or_forged_value_is_ignored(client, admin_a, org_a):
+    login_with_code(client, admin_a, remember=True)
+    logout(client)
+    other = make_user("diger@example.test")
+    add_member(other, org_a)
+    TOTPDevice.objects.create(user=other, name="t", confirmed=True)
+    assert post_login(client, other.email).url == TWO_FA  # A'nın çerezi B'ye geçmez
+    client.post(LOGIN)  # bekleyen doğrulamayı bırak
+    device_id = client.cookies["guvenilen_cihaz"].value.split(":")[0]
+    client.cookies["guvenilen_cihaz"] = f"{device_id}:uydurma"
+    assert post_login(client, admin_a.email).url == TWO_FA
+
+
+@pytest.mark.django_db
+def test_expired_device_is_ignored(client, admin_a):
+    login_with_code(client, admin_a, remember=True)
+    logout(client)
+    TrustedDevice.objects.update(expires_at=timezone.now() - timedelta(minutes=1))
+    assert post_login(client, admin_a.email).url == TWO_FA
+
+
+@pytest.mark.django_db
+def test_forget_devices_from_security_page(client, admin_a):
+    login_with_code(client, admin_a, remember=True)
+    page = client.get(reverse("accounts:security")).content.decode()
+    assert "Hatırlanan cihazlar" in page and "1 cihaz" in page
+    client.post(reverse("accounts:security"), {"action": "forget_devices"})
+    assert "auth.devices_revoked" in actions()
+    logout(client)
+    assert post_login(client, admin_a.email).url == TWO_FA
+
+
+@pytest.mark.django_db
+def test_password_reset_revokes_remembered_devices(client, admin_a):
+    login_with_code(client, admin_a, remember=True)
+    logout(client)
+    admin_a.refresh_from_db()  # giriş last_login'i değiştirdi; bağlantı güncel bilgiyle üretilmeli
+    uid = urlsafe_base64_encode(force_bytes(admin_a.pk))
+    url = reverse("accounts:password_reset_confirm", args=[uid, default_token_generator.make_token(admin_a)])
+    client.post(client.get(url).url, {"new_password1": "Yepyeni-Sifre-2026", "new_password2": "Yepyeni-Sifre-2026"})
+    assert post_login(client, admin_a.email, "Yepyeni-Sifre-2026").url == TWO_FA
+
+
+def test_device_label_is_readable():
+    ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Safari/604.1"
+    assert device_label(ua) == "Safari · iPhone"
+    assert device_label("") == "Tarayıcı · bilinmeyen sistem"
