@@ -1,0 +1,27 @@
+{% load ui %}
+{% if unit %}
+<div class="space-y-4 rounded-lg bg-gray-50 p-4">
+  <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+    <span>Açık borç: <strong class="{% if debt %}text-red-700{% endif %}">{{ debt|tl }}</strong></span>
+    {% if advance %}<span>Avans: <strong class="text-emerald-700">{{ advance|tl }}</strong></span>{% endif %}
+    <a class="text-brand-700 hover:underline" href="{% url 'reports:unit_statement' site.pk unit.pk %}" target="_blank">Ekstre</a>
+  </div>
+  {% if charges %}
+  <fieldset>
+    <legend class="label">Önce kapatılacak borçlar <span class="font-normal text-muted">(isteğe bağlı)</span></legend>
+    <div class="divide-y divide-line rounded-lg bg-white ring-1 ring-line">
+      {% for c in charges %}
+      <label class="flex items-center gap-3 px-3 py-2 text-sm">
+        <input type="checkbox" name="preferred" value="{{ c.pk }}" {% if c.pk|stringformat:'s' in form.preferred.value %}checked{% endif %}>
+        <span class="grow">{{ c.description }} <span class="text-xs text-muted">son ödeme {{ c.due_date|tr_date }}</span></span>
+        <span class="tabular-nums">{{ c.remaining|tl }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {% endif %}
+  {% include "components/field.html" with field=form.payer %}
+</div>
+{% else %}
+<p class="text-sm text-muted">Bölüm seçince açık borçları burada görünür.</p>
+{% endif %}

@@ -1,0 +1,24 @@
+{% extends "layouts/panel.html" %}
+{% load ui %}
+{% block breadcrumb %}<a class="text-sm text-muted hover:underline" href="{% url 'tenancy:site_detail' site.pk %}">{{ site.name }}</a>{% block crumb_extra %}{% endblock %}{% endblock %}
+{% block site_nav %}
+{% site_can 'finance.view' as fin %}{% site_can 'people.view' as ppl %}
+{% with vn=request.resolver_match.view_name %}
+<nav class="-mx-4 mb-6 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0" aria-label="Site menüsü">
+  <div class="flex min-w-max gap-1 text-sm">
+    {% url 'tenancy:site_detail' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn == 'tenancy:site_detail' %}site-tab-active{% endif %}">Özet</a>
+    {% url 'property:unit_list' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn|slice:':9' == 'property:' %}site-tab-active{% endif %}">Bölümler</a>
+    {% if ppl %}{% url 'people:person_list' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn|slice:':7' == 'people:' %}site-tab-active{% endif %}">Kişiler</a>{% endif %}
+    {% if fin %}
+    {% url 'billing:batch_list' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn|slice:':8' == 'billing:' %}site-tab-active{% endif %}">Tahakkuk</a>
+    {% url 'payments:payment_list' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn|slice:':9' == 'payments:' %}site-tab-active{% endif %}">Tahsilat</a>
+    {% url 'expenses:expense_list' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn == 'expenses:expense_list' %}site-tab-active{% endif %}">Giderler</a>
+    {% url 'expenses:cash_bank' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn == 'expenses:cash_bank' or vn == 'ledger:account_detail' %}site-tab-active{% endif %}">Kasa ve banka</a>
+    {% url 'reports:debtors' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn == 'reports:debtors' %}site-tab-active{% endif %}">Borçlular</a>
+    {% url 'ledger:trial_balance' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn == 'ledger:trial_balance' or vn == 'ledger:journal' %}site-tab-active{% endif %}">Muhasebe</a>
+    {% url 'ledger:settings' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn == 'ledger:settings' %}site-tab-active{% endif %}">Ayarlar</a>
+    {% endif %}
+  </div>
+</nav>
+{% endwith %}
+{% endblock %}

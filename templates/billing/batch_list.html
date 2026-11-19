@@ -1,0 +1,22 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Tahakkuk · {{ site.name }}{% endblock %}
+{% block page_title %}Tahakkuk{% endblock %}
+{% block page_subtitle %}Toplu borçlandırmalar. Önizlemede kontrol edip onaylayın; yanlışsa iptal edin (ters kayıt).{% endblock %}
+{% block page_actions %}{% site_can 'billing.manage' as bill %}{% if bill %}<a class="btn-primary" href="{% url 'billing:batch_create' site.pk %}">Yeni tahakkuk</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Dönem</th><th>Açıklama</th><th>Kapsam</th><th>Durum</th><th class="num">Bölüm</th><th class="num">Toplam</th></tr></thead>
+    <tbody>
+    {% for b in page %}
+      <tr class="hover:bg-gray-50"><td class="whitespace-nowrap">{{ b.period|period }}</td>
+        <td><a class="font-medium text-brand-700 hover:underline" href="{% url 'billing:batch_detail' site.pk b.pk %}">{{ b.description }}</a><span class="block text-xs text-muted">{{ b.charge_type.name }} · {{ b.get_method_display }}</span></td>
+        <td>{{ b.scope_label }}</td>
+        <td>{% if b.status == 'approved' %}<span class="badge-green">Onaylı</span>{% elif b.status == 'draft' %}<span class="badge-amber">Taslak</span>{% else %}<span class="badge-gray">İptal</span>{% endif %}</td>
+        <td class="num">{% if b.status != 'draft' %}{{ b.unit_count }}{% endif %}</td><td class="num">{% if b.status != 'draft' %}{{ b.total|tl }}{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6" class="py-10 text-center text-muted">Henüz tahakkuk yok.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

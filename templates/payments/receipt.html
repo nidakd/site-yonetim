@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Makbuz {{ payment.receipt_no }}{% endblock %}
+{% block body %}
+<div class="mx-auto max-w-2xl p-6 print:p-0">
+  <div class="no-print mb-4 flex justify-end gap-2"><button class="btn-primary" onclick="window.print()">Yazdır / PDF kaydet</button></div>
+  <article class="relative card card-body print:shadow-none print:ring-0">
+    {% if payment.status == 'cancelled' %}<div class="pointer-events-none absolute inset-0 grid place-items-center"><span class="-rotate-12 rounded-lg border-4 border-red-600 px-6 py-2 text-5xl font-black text-red-600/70">İPTAL</span></div>{% endif %}
+    <header class="flex items-start justify-between gap-4 border-b border-line pb-4">
+      <div><h1 class="text-xl font-bold">{{ site.name }}</h1><p class="text-sm text-muted">{{ site.address|default:"" }}{% if site.district %} {{ site.district }}{% endif %}{% if site.city %}/{{ site.city }}{% endif %}</p></div>
+      <div class="text-right"><p class="text-sm font-semibold uppercase tracking-wide text-muted">Tahsilat makbuzu</p><p class="text-lg font-bold">No {{ payment.receipt_no }}</p><p class="text-sm">{{ payment.date|tr_date }}</p></div>
+    </header>
+    <dl class="grid grid-cols-2 gap-x-6 gap-y-3 py-4 text-sm">
+      <div><dt class="text-muted">Bağımsız bölüm</dt><dd class="font-medium">{{ payment.unit.label }}</dd></div>
+      <div><dt class="text-muted">Ödeyen</dt><dd class="font-medium">{{ payment.payer_name|default:"—" }}</dd></div>
+      <div><dt class="text-muted">Ödeme şekli</dt><dd class="font-medium">{{ payment.get_channel_display }}{% if payment.reference %} · {{ payment.reference }}{% endif %}</dd></div>
+      <div><dt class="text-muted">Tutar</dt><dd class="text-xl font-bold">{{ payment.amount|tl }}</dd></div>
+    </dl>
+    <table class="data-table">
+      <thead><tr><th>Karşılığı</th><th class="num">Tutar</th></tr></thead>
+      <tbody>
+        {% for a in allocations %}<tr><td>{{ a.charge.description }}</td><td class="num">{{ a.amount|tl }}</td></tr>{% endfor %}
+        {% if advance %}<tr><td>Avans (sonraki borçlara mahsup edilecek)</td><td class="num">{{ advance|tl }}</td></tr>{% endif %}
+      </tbody>
+    </table>
+    <footer class="mt-10 flex justify-between text-sm"><span class="text-muted">Bu makbuz sistem tarafından üretilmiştir.</span><span class="border-t border-ink pt-1">Site yönetimi</span></footer>
+  </article>
+</div>
+{% endblock %}

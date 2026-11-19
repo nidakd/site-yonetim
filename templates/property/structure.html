@@ -1,0 +1,34 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Bloklar ve bölüm tipleri{% endblock %}
+{% block page_title %}Bloklar ve bölüm tipleri{% endblock %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-2">
+  <section class="card">
+    <h2 class="border-b border-line px-5 py-3 font-semibold">Bloklar</h2>
+    <table class="data-table"><tbody>
+      {% for b in blocks %}<tr><td>{{ b.name }}</td><td class="text-right">{% if can_manage %}<a class="text-sm text-brand-700 hover:underline" href="{% url 'property:block_update' site.pk b.pk %}">Düzenle</a>{% endif %}</td></tr>
+      {% empty %}<tr><td class="text-muted">Blok yok. Tek bloklu sitelerde blok eklemeden de bölüm açabilirsiniz.</td></tr>{% endfor %}
+    </tbody></table>
+    {% if can_manage %}
+    <form method="post" class="flex flex-wrap items-end gap-2 border-t border-line p-4" novalidate>{% csrf_token %}
+      <div class="grow">{% include "components/field.html" with field=block_form.name %}</div>
+      <div class="w-24">{% include "components/field.html" with field=block_form.order %}</div>
+      <button class="btn-primary">Blok ekle</button>
+    </form>{% endif %}
+  </section>
+  <section class="card">
+    <h2 class="border-b border-line px-5 py-3 font-semibold">Bölüm tipleri</h2>
+    <table class="data-table"><tbody>
+      {% for t in unit_types %}<tr><td>{{ t.name }}</td><td class="num">{{ t.default_amount|tl }}</td><td class="text-right">{% if can_manage %}<a class="text-sm text-brand-700 hover:underline" href="{% url 'property:unit_type_update' site.pk t.pk %}">Düzenle</a>{% endif %}</td></tr>
+      {% empty %}<tr><td class="text-muted">Tip yok. Aidat bölüm tipine göre belirleniyorsa (ör. 2+1, 3+1) burada tanımlayın.</td></tr>{% endfor %}
+    </tbody></table>
+    {% if can_manage %}
+    <form method="post" class="flex flex-wrap items-end gap-2 border-t border-line p-4" novalidate>{% csrf_token %}
+      <div class="grow">{% include "components/field.html" with field=type_form.name %}</div>
+      <div class="w-40">{% include "components/field.html" with field=type_form.default_amount %}</div>
+      <button class="btn-primary">Tip ekle</button>
+    </form>{% endif %}
+  </section>
+</div>
+{% endblock %}

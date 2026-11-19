@@ -1,0 +1,30 @@
+{% extends "layouts/site.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-2xl" novalidate>{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.block %}
+      {% include "components/field.html" with field=form.number %}
+      {% include "components/field.html" with field=form.floor %}
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.kind %}
+      {% include "components/field.html" with field=form.unit_type %}
+      {% include "components/field.html" with field=form.gross_area %}
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.share_numerator %}
+      {% include "components/field.html" with field=form.share_denominator %}
+    </div>
+    <p class="help">Arsa payı tapudaki gibi girilir (ör. 120 / 2400). Arsa payına göre dağıtımda kullanılır.</p>
+  </div>
+  <div class="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'property:unit_list' site.pk %}">Vazgeç</a>
+    {% if not form.instance.pk %}<button class="btn-secondary" name="add_another" value="1">Kaydet ve yeni ekle</button>{% endif %}
+    <button class="btn-primary">Kaydet</button>
+  </div>
+</form>
+{% endblock %}

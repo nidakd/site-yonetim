@@ -1,0 +1,44 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Kasa ve banka · {{ site.name }}{% endblock %}
+{% block page_title %}Kasa ve banka{% endblock %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <section class="card lg:col-span-2">
+    <h2 class="border-b border-line px-5 py-3 font-semibold">Hesaplar</h2>
+    <table class="data-table">
+      <thead><tr><th>Hesap</th><th>Tür</th><th class="num">Bakiye</th></tr></thead>
+      <tbody>
+      {% for a, bal in accounts %}<tr><td><a class="font-medium text-brand-700 hover:underline" href="{% url 'ledger:account_detail' site.pk a.pk %}">{{ a.name }}</a><span class="block text-xs text-muted">{{ a.code }}{% if a.iban %} · {{ a.iban }}{% endif %}</span></td><td>{{ a.get_cash_kind_display }}</td><td class="num font-semibold {% if bal < 0 %}text-red-700{% endif %}">{{ bal|tl }}</td></tr>{% endfor %}
+      <tr><td colspan="2" class="font-semibold">Toplam</td><td class="num font-semibold">{{ total|tl }}</td></tr>
+      </tbody>
+    </table>
+    <h3 class="border-y border-line px-5 py-3 font-semibold">Son virmanlar</h3>
+    <table class="data-table"><tbody>
+      {% for t in transfers %}<tr><td class="whitespace-nowrap">{{ t.date|tr_date }}</td><td>{{ t.from_account.name }} → {{ t.to_account.name }}</td><td class="num">{{ t.amount|tl }}</td></tr>
+      {% empty %}<tr><td class="text-muted">Virman yok.</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+  {% if can_manage %}
+  <div class="space-y-6">
+    <form method="post" class="card card-body space-y-4" novalidate>{% csrf_token %}
+      <h2 class="font-semibold">Virman (kasa ↔ banka)</h2>
+      {% with form=transfer_form %}{% include "components/form_errors.html" %}{% endwith %}
+      {% include "components/field.html" with field=transfer_form.from_account %}
+      {% include "components/field.html" with field=transfer_form.to_account %}
+      <div class="grid grid-cols-2 gap-3">{% include "components/field.html" with field=transfer_form.amount %}{% include "components/field.html" with field=transfer_form.date %}</div>
+      {% include "components/field.html" with field=transfer_form.description %}
+      <button class="btn-primary w-full">Virman yap</button>
+    </form>
+    <form method="post" class="card card-body space-y-4" novalidate>{% csrf_token %}
+      <h2 class="font-semibold">Yeni hesap</h2>
+      {% with form=account_form %}{% include "components/form_errors.html" %}{% endwith %}
+      {% include "components/field.html" with field=account_form.group %}
+      {% include "components/field.html" with field=account_form.name %}
+      {% include "components/field.html" with field=account_form.iban %}
+      <button class="btn-secondary w-full">Hesap ekle</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "layouts/site.html" %}
+{% block title %}{{ unit.label }} · kişi ekle{% endblock %}
+{% block page_title %}{{ unit.label }} · kişi ekle{% endblock %}
+{% block page_subtitle %}Malik, kiracı ya da oturan. Kişi değiştiğinde eskisini sonlandırıp yenisini ekleyin; geçmiş korunur.{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-2xl" novalidate x-data="{ existing: '{{ form.person.value|default_if_none:'' }}' }">{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    <div>{% load ui %}<label class="label" for="{{ form.person.id_for_label }}">{{ form.person.label }}</label>
+      {{ form.person|add_class:"input" }}
+      <p class="help">Aynı kişi başka bir bölümde de kayıtlıysa buradan seçin.</p></div>
+    <div x-show="!existing" class="space-y-4 rounded-lg bg-gray-50 p-4">
+      <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.first_name %}{% include "components/field.html" with field=form.last_name %}</div>
+      <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.phone %}{% include "components/field.html" with field=form.email %}</div>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.relation %}
+      {% include "components/field.html" with field=form.start_date %}
+      {% include "components/field.html" with field=form.share_percent %}
+    </div>
+    <label class="flex items-center gap-2 text-sm">{{ form.is_liable }} Borç sorumlusu (tahakkukta sorumlu kişi olarak görünür)</label>
+    <label class="flex items-center gap-2 text-sm">{{ form.receives_notifications }} Bildirim alır</label>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'property:unit_detail' site.pk unit.pk %}">Vazgeç</a><button class="btn-primary">Kaydet</button>
+  </div>
+</form>
+{% endblock %}

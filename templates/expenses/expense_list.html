@@ -1,0 +1,45 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Giderler · {{ site.name }}{% endblock %}
+{% block page_title %}Giderler{% endblock %}
+{% block page_subtitle %}Ödenen faturalar ve harcamalar. Yanlış girişi iptal edin; ters kayıt atılır.{% endblock %}
+{% block content %}
+{% if can_manage %}
+<details class="card mb-6" {% if form.errors or vendor_form.errors %}open{% endif %}>
+  <summary class="cursor-pointer px-5 py-4 font-semibold">Gider kaydet</summary>
+  <form method="post" class="space-y-4 border-t border-line p-5" novalidate>{% csrf_token %}
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-4 sm:grid-cols-3">{% include "components/field.html" with field=form.date %}{% include "components/field.html" with field=form.category %}{% include "components/field.html" with field=form.amount %}</div>
+    {% include "components/field.html" with field=form.description %}
+    <div class="grid gap-4 sm:grid-cols-3">{% include "components/field.html" with field=form.paid_from %}{% include "components/field.html" with field=form.vendor %}{% include "components/field.html" with field=form.document_number %}</div>
+    <div class="flex justify-end"><button class="btn-primary">Gideri kaydet</button></div>
+  </form>
+  <form method="post" class="flex flex-wrap items-end gap-2 border-t border-line bg-gray-50 p-5" novalidate>{% csrf_token %}
+    <p class="w-full text-sm font-medium">Yeni tedarikçi</p>
+    {% with form=vendor_form %}{% include "components/form_errors.html" %}{% endwith %}
+    <div class="grow">{% include "components/field.html" with field=vendor_form.name %}</div>
+    <div>{% include "components/field.html" with field=vendor_form.tax_number %}</div>
+    <div>{% include "components/field.html" with field=vendor_form.phone %}</div>
+    <button class="btn-secondary">Ekle</button>
+  </form>
+</details>
+{% endif %}
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Tarih</th><th>Açıklama</th><th>Kalem</th><th>Hesap</th><th class="num">Tutar</th>{% if can_manage %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for e in page %}
+      <tr class="{% if e.status == 'cancelled' %}text-muted{% endif %}"><td class="whitespace-nowrap">{{ e.date|tr_date }}</td>
+        <td>{{ e.description }}{% if e.status == 'cancelled' %} <span class="badge-gray">İptal</span>{% endif %}<span class="block text-xs text-muted">{% if e.vendor %}{{ e.vendor.name }}{% endif %}{% if e.document_number %} · belge {{ e.document_number }}{% endif %}{% if e.cancel_reason %} · {{ e.cancel_reason }}{% endif %}</span></td>
+        <td>{{ e.category.name }}</td><td>{{ e.paid_from.name }}</td>
+        <td class="num font-semibold {% if e.status == 'cancelled' %}line-through{% endif %}">{{ e.amount|tl }}</td>
+        {% if can_manage %}<td class="text-right">{% if e.status == 'valid' %}
+          <details class="relative inline-block text-left"><summary class="cursor-pointer text-xs text-muted hover:underline">İptal</summary>
+            <form method="post" action="{% url 'expenses:expense_cancel' site.pk e.pk %}" class="card absolute right-0 z-10 mt-1 flex w-72 gap-2 p-3">{% csrf_token %}
+              <input class="input py-1.5" name="reason" placeholder="İptal nedeni" required aria-label="İptal nedeni"><button class="btn-danger px-3 py-1.5">İptal</button></form></details>{% endif %}</td>{% endif %}
+      </tr>
+    {% empty %}<tr><td colspan="6" class="py-10 text-center text-muted">Henüz gider yok.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

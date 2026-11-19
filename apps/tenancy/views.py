@@ -28,6 +28,9 @@ def site_create(request):
         with transaction.atomic():
             site = form.save()
             record("site.created", site, {"name": site.name}, site_id=site.pk)
+            from apps.billing.services import setup_site
+
+            setup_site(site)
         messages.success(request, f"{site.name} oluşturuldu.")
         return redirect("tenancy:site_detail", site_id=site.pk)
     return render(request, "tenancy/site_form.html", {"form": form, "title": "Yeni site"})
@@ -39,8 +42,20 @@ def site_detail(request, site_id: int):
     if not any(m.site_id in (None, site.pk) for m in request.memberships):
         raise Http404
     request.session["active_site_id"] = site.pk
+    from apps.billing.services import setup_site
+    from apps.reports.services import site_summary
+
+    with transaction.atomic():
+        setup_site(site)
+    finance = has_perm(request, "finance.view", site.pk)
     return render(
-        request, "tenancy/site_detail.html", {"site": site, "can_edit": has_perm(request, "site.update", site.pk)}
+        request,
+        "tenancy/site_detail.html",
+        {
+            "site": site,
+            "can_edit": has_perm(request, "site.update", site.pk),
+            "summary": site_summary(site) if finance else None,
+        },
     )
 
 

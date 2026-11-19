@@ -55,14 +55,15 @@
   <main class="lg:pl-72">
     <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       {% include "components/messages.html" %}
-      <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           {% block breadcrumb %}{% endblock %}
           <h1 class="text-2xl font-bold">{% block page_title %}{% endblock %}</h1>
           <p class="mt-1 text-sm text-muted">{% block page_subtitle %}{% endblock %}</p>
         </div>
-        <div class="flex gap-2">{% block page_actions %}{% endblock %}</div>
+        <div class="flex flex-wrap gap-2">{% block page_actions %}{% endblock %}</div>
       </div>
+      {% block site_nav %}{% endblock %}
       {% block content %}{% endblock %}
     </div>
   </main>

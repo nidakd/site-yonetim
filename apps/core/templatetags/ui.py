@@ -51,3 +51,8 @@ def site_can(context, perm):
 
     site = context.get("site")
     return has_perm(context["request"], perm, site.pk if site else None)
+
+
+@register.filter
+def absval(value):
+    return abs(value) if value is not None else value

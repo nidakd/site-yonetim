@@ -1,0 +1,84 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}{{ unit.label }} · {{ site.name }}{% endblock %}
+{% block page_title %}{{ unit.label }}{% endblock %}
+{% block page_subtitle %}{{ unit.get_kind_display }}{% if unit.unit_type %} · {{ unit.unit_type.name }}{% endif %}{% if unit.floor is not None %} · {{ unit.floor }}. kat{% endif %}{% if unit.gross_area %} · {{ unit.gross_area }} m²{% endif %}{% if unit.share %} · arsa payı {{ unit.share_numerator }}/{{ unit.share_denominator }}{% endif %}{% if unit.is_archived %} · <span class="badge-gray">Arşivde</span>{% endif %}{% endblock %}
+{% block page_actions %}{% site_can 'payments.manage' as pay %}{% site_can 'property.manage' as pm %}{% site_can 'finance.view' as fin %}
+{% if pay and not unit.is_archived %}<a class="btn-primary" href="{% url 'payments:payment_create' site.pk %}?bolum={{ unit.pk }}">Tahsilat al</a>{% endif %}
+{% if fin %}<a class="btn-secondary" href="{% url 'reports:unit_statement' site.pk unit.pk %}">Ekstre</a>{% endif %}
+{% if pm %}<a class="btn-secondary" href="{% url 'property:unit_update' site.pk unit.pk %}">Düzenle</a>{% endif %}{% endblock %}
+{% block content %}
+{% site_can 'finance.view' as fin %}{% site_can 'people.manage' as pplm %}{% site_can 'billing.manage' as bill %}{% site_can 'property.manage' as pm %}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    {% if fin %}
+    <section class="card">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
+        <h2 class="font-semibold">Açık borçlar</h2>
+        {% if bill and not unit.is_archived %}<a class="text-sm text-brand-700 hover:underline" href="{% url 'billing:batch_create' site.pk %}?bolum={{ unit.pk }}">Bu bölümü borçlandır</a>{% endif %}
+      </div>
+      <div class="overflow-x-auto"><table class="data-table">
+        <thead><tr><th>Borç</th><th>Son ödeme</th><th class="num">Tutar</th><th class="num">Ödenen</th><th class="num">Kalan</th></tr></thead>
+        <tbody>
+        {% for c in open_charges %}
+          <tr><td>{{ c.description }}</td><td class="{% if c.due_date < today %}text-red-700{% endif %}">{{ c.due_date|tr_date }}</td><td class="num">{{ c.amount|tl }}</td><td class="num">{{ c.paid|tl }}</td><td class="num font-semibold">{{ c.remaining|tl }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="py-6 text-center text-muted">Açık borç yok.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    <section class="card">
+      <div class="flex items-center justify-between border-b border-line px-5 py-3"><h2 class="font-semibold">Son hareketler</h2>
+        <a class="text-sm text-brand-700 hover:underline" href="{% url 'reports:unit_statement' site.pk unit.pk %}">Tüm ekstre</a></div>
+      <div class="overflow-x-auto"><table class="data-table">
+        <thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Borç</th><th class="num">Alacak</th><th class="num">Bakiye</th></tr></thead>
+        <tbody>
+        {% for r in statement %}<tr><td class="whitespace-nowrap">{{ r.date|tr_date }}</td><td>{% if r.source_type == 'payment' and r.source_id %}<a class="text-brand-700 hover:underline" href="{% url 'payments:payment_detail' site.pk r.source_id %}">{{ r.description }}</a>{% else %}{{ r.description }}{% endif %}</td><td class="num">{% if r.debit %}{{ r.debit|tl }}{% endif %}</td><td class="num">{% if r.credit %}{{ r.credit|tl }}{% endif %}</td><td class="num font-medium">{{ r.balance|tl }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="py-6 text-center text-muted">Hareket yok.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% endif %}
+  </div>
+  <div class="space-y-6">
+    <section class="card">
+      <div class="flex items-center justify-between border-b border-line px-5 py-3"><h2 class="font-semibold">Malik ve kiracılar</h2>
+        {% if pplm %}<a class="text-sm text-brand-700 hover:underline" href="{% url 'people:occupancy_create' site.pk unit.pk %}">Kişi ekle</a>{% endif %}</div>
+      <ul class="divide-y divide-line">
+        {% for o in current %}
+        <li class="px-5 py-3 text-sm">
+          <div class="flex items-start justify-between gap-2">
+            <div><a class="font-medium hover:underline" href="{% url 'people:person_detail' site.pk o.person_id %}">{{ o.person.full_name }}</a>
+              <p class="text-xs text-muted">{{ o.get_relation_display }}{% if o.share_percent %} · %{{ o.share_percent }}{% endif %} · {{ o.start_date|tr_date }}'den beri{% if o.is_liable %} · borç sorumlusu{% endif %}</p>
+              {% if o.person.phone %}<a class="text-xs text-brand-700" href="tel:{{ o.person.phone }}">{{ o.person.phone }}</a>{% endif %}</div>
+            {% if pplm %}<a class="shrink-0 text-xs text-muted hover:underline" href="{% url 'people:occupancy_end' site.pk o.pk %}">Sonlandır</a>{% endif %}
+          </div>
+        </li>
+        {% empty %}<li class="px-5 py-4 text-sm text-muted">Kayıtlı kişi yok.</li>{% endfor %}
+      </ul>
+      {% if past %}<details class="border-t border-line px-5 py-3 text-sm"><summary class="cursor-pointer text-muted">Geçmiş ({{ past|length }})</summary>
+        <ul class="mt-2 space-y-1">{% for o in past %}<li>{{ o.person.full_name }} <span class="text-xs text-muted">{{ o.get_relation_display }} · {{ o.start_date|tr_date }} – {{ o.end_date|tr_date }}</span></li>{% endfor %}</ul></details>{% endif %}
+    </section>
+    {% if fin %}
+    <section class="card">
+      <div class="flex items-center justify-between border-b border-line px-5 py-3"><h2 class="font-semibold">Özel aidat</h2>
+        {% if bill %}<a class="text-sm text-brand-700 hover:underline" href="{% url 'billing:agreement_create' site.pk unit.pk %}">Ekle</a>{% endif %}</div>
+      <ul class="divide-y divide-line">
+        {% for a in agreements %}
+        <li class="px-5 py-3 text-sm">
+          <p class="font-medium">{{ a.get_kind_display }}{% if a.kind == 'fixed' %}: {{ a.amount|tl }}{% elif a.kind == 'discount' %}: %{{ a.discount_percent }}{% endif %}
+            {% if a.valid_to and a.valid_to < today %}<span class="badge-gray">Bitti</span>{% elif a.valid_from > today %}<span class="badge-amber">Başlamadı</span>{% else %}<span class="badge-green">Geçerli</span>{% endif %}</p>
+          <p class="text-xs text-muted">{{ a.valid_from|tr_date }} – {% if a.valid_to %}{{ a.valid_to|tr_date }}{% else %}süresiz{% endif %}{% if a.decision_ref %} · {{ a.decision_ref }}{% endif %}</p>
+          {% if bill and not a.valid_to %}
+          <form method="post" action="{% url 'billing:agreement_end' site.pk a.pk %}" class="mt-2 flex items-center gap-2">{% csrf_token %}
+            <input class="input max-w-40 py-1.5" type="date" name="end_date" value="{{ today|date:'Y-m-d' }}" aria-label="Bitiş tarihi">
+            <button class="btn-ghost px-2 py-1 text-xs">Sonlandır</button></form>{% endif %}
+        </li>
+        {% empty %}<li class="px-5 py-4 text-sm text-muted">Yok. Sabit tutar, indirim ya da muafiyet tanımlanabilir.</li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    {% if pm %}
+    <form method="post" action="{% url 'property:unit_archive' site.pk unit.pk %}" class="text-right">{% csrf_token %}
+      <button class="btn-ghost text-xs">{% if unit.is_archived %}Arşivden çıkar{% else %}Bölümü arşivle{% endif %}</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

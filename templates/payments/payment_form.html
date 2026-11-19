@@ -1,0 +1,35 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Tahsilat al{% endblock %}
+{% block page_title %}Tahsilat al{% endblock %}
+{% block page_subtitle %}Ödeme önce işaretlediğiniz borçlara, sonra vadesi en eski borçlara yazılır. Artan tutar avans olur.{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-3xl" novalidate>{% csrf_token %}
+  <div class="card-body space-y-5">
+    {% include "components/form_errors.html" %}
+    <div>
+      <label class="label" for="{{ form.unit.id_for_label }}">{{ form.unit.label }}</label>
+      <select class="input{% if form.unit.errors %} input-error{% endif %}" id="{{ form.unit.id_for_label }}" name="unit"
+              hx-get="{% url 'payments:payment_create' site.pk %}" hx-target="#unit-panel" hx-trigger="change">
+        <option value="">— Bölüm seçin —</option>
+        {% for u in form.fields.unit.queryset %}<option value="{{ u.pk }}" {% if unit and unit.pk == u.pk %}selected{% endif %}>{{ u.label }}</option>{% endfor %}
+      </select>
+      {% for e in form.unit.errors %}<p class="error-text">{{ e }}</p>{% endfor %}
+    </div>
+    <div id="unit-panel">{% include "payments/_unit_panel.html" %}</div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.amount %}
+      {% include "components/field.html" with field=form.date %}
+      {% include "components/field.html" with field=form.channel %}
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.account %}
+      {% include "components/field.html" with field=form.reference %}
+      {% include "components/field.html" with field=form.note %}
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'payments:payment_list' site.pk %}">Vazgeç</a><button class="btn-primary">Tahsilatı kaydet</button>
+  </div>
+</form>
+{% endblock %}

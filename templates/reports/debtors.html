@@ -1,0 +1,19 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Borçlular · {{ site.name }}{% endblock %}
+{% block page_title %}Borçlu bölümler{% endblock %}
+{% block page_subtitle %}Yalnızca yönetim içindir; sakinlere ve panolara borçlu listesi paylaşılmaz (KVKK).{% endblock %}
+{% block content %}
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Bölüm</th><th>En eski açık borç</th><th class="num">Gecikme</th><th class="num">Bakiye</th></tr></thead>
+    <tbody>
+    {% for r in rows %}<tr><td class="font-medium"><a class="text-brand-700 hover:underline" href="{% url 'property:unit_detail' site.pk r.unit.pk %}">{{ r.unit.label }}</a></td>
+      <td>{{ r.oldest_due|tr_date }}</td><td class="num">{% if r.days_late %}<span class="{% if r.days_late > 60 %}badge-amber{% else %}text-muted{% endif %}">{{ r.days_late }} gün</span>{% else %}<span class="text-muted">Vadesi gelmedi</span>{% endif %}</td>
+      <td class="num font-semibold text-red-700">{{ r.balance|tl }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="py-10 text-center text-muted">Borçlu bölüm yok.</td></tr>{% endfor %}
+    </tbody>
+    {% if rows %}<tfoot><tr class="font-semibold"><td colspan="3" class="border-t border-line px-4 py-3">{{ rows|length }} bölüm</td><td class="num border-t border-line px-4 py-3">{{ total|tl }}</td></tr></tfoot>{% endif %}
+  </table>
+</div>
+{% endblock %}

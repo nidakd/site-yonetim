@@ -46,3 +46,39 @@ class DateInput(forms.DateInput):
 
     def __init__(self, attrs=None):
         super().__init__(attrs, format="%Y-%m-%d")
+
+
+class MonthInput(forms.DateInput):
+    input_type = "month"
+
+    def __init__(self, attrs=None):
+        super().__init__(attrs, format="%Y-%m")
+
+
+class MonthField(forms.DateField):
+    """'2026-11' → date(2026, 11, 1)."""
+
+    widget = MonthInput
+    input_formats = ["%Y-%m", "%Y-%m-%d"]
+
+    def to_python(self, value):
+        day = super().to_python(value)
+        return day.replace(day=1) if day else day
+
+
+class CancelForm(forms.Form):
+    reason = forms.CharField(label="İptal nedeni", max_length=255)
+
+
+class EndDateForm(forms.Form):
+    end_date = forms.DateField(label="Bitiş tarihi", widget=DateInput())
+
+    def __init__(self, *args, start, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start = start
+
+    def clean_end_date(self):
+        end = self.cleaned_data["end_date"]
+        if end < self.start:
+            raise forms.ValidationError("Bitiş, başlangıçtan önce olamaz.")
+        return end

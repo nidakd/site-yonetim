@@ -1,0 +1,22 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}{{ person.full_name }}{% endblock %}
+{% block page_title %}{{ person.full_name }}{% endblock %}
+{% block page_subtitle %}{% if person.phone %}{{ person.phone }}{% endif %}{% if person.email %} · {{ person.email }}{% endif %}{% endblock %}
+{% block page_actions %}{% site_can 'people.manage' as pm %}{% if pm %}<a class="btn-secondary" href="{% url 'people:person_update' site.pk person.pk %}">Düzenle</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Bölüm</th><th>İlişki</th><th>Başlangıç</th><th>Bitiş</th><th>Borç sorumlusu</th></tr></thead>
+    <tbody>
+    {% for o in occupancies %}
+      <tr><td>{% if o.unit.site_id == site.pk %}<a class="text-brand-700 hover:underline" href="{% url 'property:unit_detail' site.pk o.unit_id %}">{{ o.unit.label }}</a>{% else %}{{ o.unit.label }} <span class="text-xs text-muted">(başka site)</span>{% endif %}</td>
+        <td>{{ o.get_relation_display }}{% if o.share_percent %} · %{{ o.share_percent }}{% endif %}</td>
+        <td>{{ o.start_date|tr_date }}</td><td>{% if o.end_date %}{{ o.end_date|tr_date }}{% else %}<span class="badge-green">Devam ediyor</span>{% endif %}</td>
+        <td>{% if o.is_liable %}Evet{% else %}Hayır{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if person.notes %}<div class="card card-body mt-6 text-sm"><h2 class="section-title">Not</h2>{{ person.notes|linebreaksbr }}</div>{% endif %}
+{% endblock %}

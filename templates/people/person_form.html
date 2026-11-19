@@ -1,0 +1,16 @@
+{% extends "layouts/site.html" %}
+{% block title %}{{ person.full_name }} · düzenle{% endblock %}
+{% block page_title %}{{ person.full_name }} · düzenle{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-2xl" novalidate>{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.first_name %}{% include "components/field.html" with field=form.last_name %}</div>
+    <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.phone %}{% include "components/field.html" with field=form.email %}</div>
+    {% include "components/field.html" with field=form.notes %}
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'people:person_detail' site.pk person.pk %}">Vazgeç</a><button class="btn-primary">Kaydet</button>
+  </div>
+</form>
+{% endblock %}

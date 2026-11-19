@@ -1,0 +1,18 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Mizan · {{ site.name }}{% endblock %}
+{% block page_title %}Mizan{% endblock %}
+{% block page_subtitle %}Tüm hesapların borç, alacak ve bakiyeleri. Borç ve alacak toplamı her zaman eşittir.{% endblock %}
+{% block page_actions %}<a class="btn-secondary" href="{% url 'ledger:journal' site.pk %}">Yevmiye</a>{% endblock %}
+{% block content %}
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Hesap</th><th>Tür</th><th class="num">Borç</th><th class="num">Alacak</th><th class="num">Bakiye</th></tr></thead>
+    <tbody>
+    {% for r in rows %}<tr class="{% if not r.debit and not r.credit %}text-muted{% endif %}"><td><a class="hover:underline" href="{% url 'ledger:account_detail' site.pk r.account.pk %}">{{ r.account.code }} {{ r.account.name }}</a></td><td>{{ r.account.get_kind_display }}</td>
+      <td class="num">{{ r.debit|tl }}</td><td class="num">{{ r.credit|tl }}</td><td class="num font-medium">{% if r.balance > 0 %}{{ r.balance|tl }} B{% elif r.balance < 0 %}{{ r.balance|absval|tl }} A{% else %}—{% endif %}</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr class="font-semibold"><td colspan="2" class="border-t border-line px-4 py-3">Toplam</td><td class="num border-t border-line px-4 py-3">{{ debit|tl }}</td><td class="num border-t border-line px-4 py-3">{{ credit|tl }}</td><td class="border-t border-line px-4 py-3 text-right">{% if debit == credit %}<span class="badge-green">Dengede</span>{% else %}<span class="badge-amber">Dengesiz</span>{% endif %}</td></tr></tfoot>
+  </table>
+</div>
+{% endblock %}

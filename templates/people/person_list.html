@@ -1,0 +1,23 @@
+{% extends "layouts/site.html" %}
+{% block title %}Kişiler · {{ site.name }}{% endblock %}
+{% block page_title %}Kişiler{% endblock %}
+{% block page_subtitle %}Sitedeki malik, kiracı ve oturanlar. Kişi eklemek için bölüm sayfasını kullanın.{% endblock %}
+{% block content %}
+<form method="get" class="mb-4 flex flex-wrap items-end gap-2">
+  <div class="grow sm:grow-0"><label class="label" for="q">Ara</label><input class="input" id="q" name="q" value="{{ q }}" placeholder="Ad, soyad ya da telefon"></div>
+  <label class="flex items-center gap-2 pb-2.5 text-sm"><input type="checkbox" name="tumu" value="1" {% if show_all %}checked{% endif %} onchange="this.form.submit()"> Ayrılanları da göster</label>
+  <button class="btn-secondary">Ara</button>
+</form>
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Ad soyad</th><th>Telefon</th><th>Bölümler</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td class="font-medium"><a class="text-brand-700 hover:underline" href="{% url 'people:person_detail' site.pk r.person.pk %}">{{ r.person.full_name }}</a></td>
+        <td>{% if r.person.phone %}<a href="tel:{{ r.person.phone }}">{{ r.person.phone }}</a>{% else %}—{% endif %}</td>
+        <td>{% for o in r.current %}<span class="block">{{ o.unit.label }} <span class="text-xs text-muted">{{ o.get_relation_display }}</span></span>{% empty %}<span class="text-muted">Ayrıldı</span>{% endfor %}</td></tr>
+    {% empty %}<tr><td colspan="3" class="py-10 text-center text-muted">Kişi yok.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

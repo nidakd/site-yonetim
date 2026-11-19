@@ -51,3 +51,15 @@
   .data-table th { @apply bg-gray-50 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted; }
   .data-table td { @apply border-t border-line px-4 py-3 align-top; }
 }
+
+@utility site-tab { @apply whitespace-nowrap border-b-2 border-transparent px-3 py-2.5 font-medium text-muted hover:text-ink; }
+@utility site-tab-active { @apply border-brand-600 text-brand-700 hover:text-brand-700; }
+@utility stat-label { @apply text-sm text-muted; }
+@utility stat-value { @apply mt-1 text-2xl font-bold tabular-nums; }
+@utility num { @apply whitespace-nowrap text-right tabular-nums; }
+@utility section-title { @apply mb-3 text-base font-semibold; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}

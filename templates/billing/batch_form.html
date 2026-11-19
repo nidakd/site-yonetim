@@ -1,0 +1,37 @@
+{% extends "layouts/site.html" %}
+{% block title %}Yeni tahakkuk{% endblock %}
+{% block page_title %}Tahakkuk sihirbazı{% endblock %}
+{% block page_subtitle %}1. Bilgileri girin → 2. Önizlemede bölüm bölüm kontrol edin → 3. Onaylayın.{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-3xl" novalidate
+      x-data="{ method: '{{ form.method.value|default:'per_unit' }}', scope: '{{ form.scope.value|default:'site' }}' }">{% csrf_token %}
+  <div class="card-body space-y-5">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.charge_type %}
+      {% include "components/field.html" with field=form.period %}
+      {% include "components/field.html" with field=form.due_date %}
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.method %}
+      <div x-show="method !== 'unit_type'">{% include "components/field.html" with field=form.amount %}
+        <p class="help" x-text="['equal','share','area'].includes(method) ? 'Dağıtılacak toplam tutar. Kuruşlar en büyük kalan yöntemiyle dağıtılır; toplam birebir korunur.' : 'Her bölüme yazılacak tutar.'"></p></div>
+      <p class="help sm:pt-7" x-show="method === 'unit_type'" x-cloak>Her bölüme kendi bölüm tipinin aylık aidatı yazılır (Bloklar ve tipler sayfası).</p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% include "components/field.html" with field=form.scope %}
+      <div x-show="scope === 'block'" x-cloak>{% include "components/field.html" with field=form.block %}</div>
+      <div x-show="scope === 'unit'" x-cloak>{% include "components/field.html" with field=form.unit %}</div>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.description %}
+      {% include "components/field.html" with field=form.decision_ref %}
+    </div>
+    <p class="help">Özel aidat anlaşmaları (sabit tutar, indirim, muafiyet) yalnızca "Aidat" gibi anlaşma uygulanan türlerde dikkate alınır. Muaf bölümler toplam dağıtımında paydaya girmez.</p>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'billing:batch_list' site.pk %}">Vazgeç</a>
+    <button class="btn-primary">Önizle</button>
+  </div>
+</form>
+{% endblock %}

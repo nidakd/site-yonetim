@@ -1,0 +1,21 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Tahsilat · {{ site.name }}{% endblock %}
+{% block page_title %}Tahsilat{% endblock %}
+{% block page_actions %}{% site_can 'payments.manage' as pay %}{% if pay %}<a class="btn-primary" href="{% url 'payments:payment_create' site.pk %}">Tahsilat al</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Makbuz</th><th>Tarih</th><th>Bölüm</th><th>Ödeme şekli</th><th class="num">Tutar</th></tr></thead>
+    <tbody>
+    {% for p in page %}
+      <tr class="hover:bg-gray-50 {% if p.status == 'cancelled' %}text-muted{% endif %}">
+        <td><a class="font-medium text-brand-700 hover:underline" href="{% url 'payments:payment_detail' site.pk p.pk %}">{{ p.receipt_no }}</a>{% if p.status == 'cancelled' %} <span class="badge-gray">İptal</span>{% endif %}</td>
+        <td class="whitespace-nowrap">{{ p.date|tr_date }}</td><td>{{ p.unit.label }}</td><td>{{ p.get_channel_display }}<span class="block text-xs text-muted">{{ p.account.name }}</span></td>
+        <td class="num font-semibold {% if p.status == 'cancelled' %}line-through{% endif %}">{{ p.amount|tl }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="py-10 text-center text-muted">Henüz tahsilat yok.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if page.has_other_pages %}<nav class="mt-4 flex justify-between text-sm">{% if page.has_previous %}<a class="btn-secondary" href="?sayfa={{ page.previous_page_number }}">← Yeni</a>{% else %}<span></span>{% endif %}<span class="self-center text-muted">{{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn-secondary" href="?sayfa={{ page.next_page_number }}">Eski →</a>{% endif %}</nav>{% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "layouts/site.html" %}
+{% block title %}{{ unit.label }} · özel aidat{% endblock %}
+{% block page_title %}{{ unit.label }} · özel aidat{% endblock %}
+{% block page_subtitle %}Genel kurul ya da yönetim kararına dayalı sabit tutar, indirim veya muafiyet.{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-2xl" novalidate x-data="{ kind: '{{ form.kind.value|default:'fixed' }}' }">{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.kind %}
+      <div x-show="kind === 'fixed'">{% include "components/field.html" with field=form.amount %}</div>
+      <div x-show="kind === 'discount'" x-cloak>{% include "components/field.html" with field=form.discount_percent %}</div>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.valid_from %}
+      {% include "components/field.html" with field=form.valid_to %}
+    </div>
+    {% include "components/field.html" with field=form.decision_ref %}
+    {% include "components/field.html" with field=form.note %}
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'property:unit_detail' site.pk unit.pk %}">Vazgeç</a><button class="btn-primary">Kaydet</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}{{ unit.label }} · ekstre{% endblock %}
+{% block page_title %}{{ unit.label }} · hesap ekstresi{% endblock %}
+{% block page_subtitle %}{% for o in people %}{{ o.person.full_name }} ({{ o.get_relation_display|lower }}){% if not forloop.last %}, {% endif %}{% endfor %} · {{ today|tr_date }} itibarıyla{% endblock %}
+{% block page_actions %}<button class="btn-secondary no-print" onclick="window.print()">Yazdır</button>
+<a class="btn-ghost no-print" href="{% url 'property:unit_detail' site.pk unit.pk %}">Bölüme dön</a>{% endblock %}
+{% block content %}
+<form method="get" class="no-print mb-4 flex flex-wrap items-end gap-2">
+  <div><label class="label" for="baslangic">Başlangıç tarihi</label><input class="input" type="date" id="baslangic" name="baslangic" value="{{ start|date:'Y-m-d' }}"></div>
+  <button class="btn-secondary">Göster</button>{% if start %}<a class="btn-ghost" href="?">Tümü</a>{% endif %}
+</form>
+<div class="mb-4 grid gap-4 sm:grid-cols-2">
+  <div class="card card-body"><p class="stat-label">{% if balance < 0 %}Avans (alacaklı){% else %}Bakiye (borç){% endif %}</p><p class="stat-value {% if balance > 0 %}text-red-700{% elif balance < 0 %}text-emerald-700{% endif %}">{{ balance|absval|tl }}</p></div>
+  <div class="card card-body"><p class="stat-label">Açık borç kalemi</p><p class="stat-value">{{ open_charges|length }}</p></div>
+</div>
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Borç</th><th class="num">Ödeme</th><th class="num">Bakiye</th></tr></thead>
+    <tbody>
+    {% for r in rows %}<tr><td class="whitespace-nowrap">{{ r.date|tr_date }}</td><td>{{ r.description }}</td><td class="num">{% if r.debit %}{{ r.debit|tl }}{% endif %}</td><td class="num">{% if r.credit %}{{ r.credit|tl }}{% endif %}</td><td class="num font-medium">{{ r.balance|tl }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="py-10 text-center text-muted">Hareket yok.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="mt-3 text-xs text-muted">Pozitif bakiye borcu, negatif bakiye avansı gösterir.</p>
+{% endblock %}

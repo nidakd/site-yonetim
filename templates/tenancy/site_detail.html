@@ -1,14 +1,42 @@
-{% extends "layouts/panel.html" %}
+{% extends "layouts/site.html" %}
+{% load ui %}
 {% block title %}{{ site.name }}{% endblock %}
 {% block breadcrumb %}<a class="text-sm text-muted hover:underline" href="{% url 'tenancy:dashboard' %}">← Siteler</a>{% endblock %}
 {% block page_title %}{{ site.name }}{% endblock %}
 {% block page_subtitle %}{% if site.district %}{{ site.district }}, {% endif %}{{ site.city }}{% endblock %}
-{% block page_actions %}{% if can_edit %}<a class="btn-secondary" href="{% url 'tenancy:site_update' site.pk %}">Düzenle</a>{% endif %}{% endblock %}
+{% block page_actions %}{% site_can 'payments.manage' as pay %}{% site_can 'billing.manage' as bill %}
+{% if pay %}<a class="btn-primary" href="{% url 'payments:payment_create' site.pk %}">Tahsilat al</a>{% endif %}
+{% if bill %}<a class="btn-secondary" href="{% url 'billing:batch_create' site.pk %}">Borçlandır</a>{% endif %}
+{% if can_edit %}<a class="btn-ghost" href="{% url 'tenancy:site_update' site.pk %}">Site bilgileri</a>{% endif %}{% endblock %}
 {% block content %}
-<div class="grid gap-4 sm:grid-cols-3">
-  <div class="card card-body"><p class="text-sm text-muted">Bağımsız bölüm</p><p class="mt-1 text-2xl font-bold">—</p></div>
-  <div class="card card-body"><p class="text-sm text-muted">Bu ay tahsilat</p><p class="mt-1 text-2xl font-bold">—</p></div>
-  <div class="card card-body"><p class="text-sm text-muted">Açık borç</p><p class="mt-1 text-2xl font-bold">—</p></div>
+{% if summary %}
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="card card-body"><p class="stat-label">Bağımsız bölüm</p><p class="stat-value">{{ summary.unit_count }}</p></div>
+  <div class="card card-body"><p class="stat-label">{{ summary.month|period }} tahakkuku</p><p class="stat-value">{{ summary.accrued|tl }}</p></div>
+  <div class="card card-body"><p class="stat-label">{{ summary.month|period }} tahsilatı</p><p class="stat-value">{{ summary.collected|tl }}</p></div>
+  <div class="card card-body"><p class="stat-label">Açık alacak</p><p class="stat-value {% if summary.receivable %}text-red-700{% endif %}">{{ summary.receivable|tl }}</p>
+    <p class="mt-1 text-xs text-muted">{{ summary.debtor_count }} borçlu bölüm{% if summary.advance %} · avans {{ summary.advance|tl }}{% endif %}</p></div>
 </div>
-<div class="alert-info mt-6">Bloklar, bağımsız bölümler, kişiler, borçlandırma ve tahsilat bir sonraki aşamada (Faz 1) bu sayfaya eklenecek.</div>
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <section class="card">
+    <div class="flex items-center justify-between border-b border-line px-5 py-3"><h2 class="font-semibold">Kasa ve banka</h2>
+      <a class="text-sm text-brand-700 hover:underline" href="{% url 'expenses:cash_bank' site.pk %}">Tümü</a></div>
+    <table class="data-table"><tbody>
+      {% for account, bal in summary.cash %}<tr><td><a class="hover:underline" href="{% url 'ledger:account_detail' site.pk account.pk %}">{{ account.name }}</a></td><td class="num">{{ bal|tl }}</td></tr>{% endfor %}
+      <tr><td class="font-semibold">Toplam</td><td class="num font-semibold">{{ summary.cash_total|tl }}</td></tr>
+    </tbody></table>
+  </section>
+  <section class="card card-body">
+    <h2 class="section-title">Aylık iş akışı</h2>
+    <ol class="list-decimal space-y-2 pl-5 text-sm text-muted">
+      <li><a class="text-brand-700 hover:underline" href="{% url 'billing:batch_create' site.pk %}">Tahakkuk sihirbazı</a> ile ayın aidatını önizleyip onaylayın.</li>
+      <li>Gelen ödemeleri <a class="text-brand-700 hover:underline" href="{% url 'payments:payment_create' site.pk %}">tahsilat</a> olarak girin; borçlar otomatik kapanır, makbuz numarası verilir.</li>
+      <li>Faturaları <a class="text-brand-700 hover:underline" href="{% url 'expenses:expense_list' site.pk %}">gider</a> olarak kaydedin.</li>
+      <li><a class="text-brand-700 hover:underline" href="{% url 'reports:debtors' site.pk %}">Borçlular</a> listesini kontrol edin, ay sonunda <a class="text-brand-700 hover:underline" href="{% url 'ledger:settings' site.pk %}">dönemi kilitleyin</a>.</li>
+    </ol>
+  </section>
+</div>
+{% else %}
+<div class="card card-body"><p class="text-sm text-muted">Bu sitede mali bilgileri görme yetkiniz yok. <a class="text-brand-700 hover:underline" href="{% url 'property:unit_list' site.pk %}">Bölümler</a> sayfasından sakinleri görebilirsiniz.</p></div>
+{% endif %}
 {% endblock %}

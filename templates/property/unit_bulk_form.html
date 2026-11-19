@@ -1,0 +1,24 @@
+{% extends "layouts/site.html" %}
+{% block title %}Toplu bölüm ekle{% endblock %}
+{% block page_title %}Toplu bölüm ekle{% endblock %}
+{% block page_subtitle %}Bir blokta ardışık numaralı bölümleri tek seferde açın.{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-2xl" novalidate>{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.block %}
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.first %}
+      {% include "components/field.html" with field=form.last %}
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.kind %}
+      {% include "components/field.html" with field=form.unit_type %}
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'property:unit_list' site.pk %}">Vazgeç</a>
+    <button class="btn-primary">Bölümleri oluştur</button>
+  </div>
+</form>
+{% endblock %}

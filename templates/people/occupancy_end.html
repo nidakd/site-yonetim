@@ -1,0 +1,12 @@
+{% extends "layouts/site.html" %}
+{% block title %}İlişkiyi sonlandır{% endblock %}
+{% block page_title %}{{ occ.person.full_name }} · {{ occ.unit.label }}{% endblock %}
+{% block page_subtitle %}{{ occ.get_relation_display }} ilişkisini sonlandırın (satış, taşınma). Kayıt silinmez, geçmişte görünür.{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-md" novalidate>{% csrf_token %}
+  <div class="card-body space-y-4">{% include "components/form_errors.html" %}{% include "components/field.html" with field=form.end_date %}</div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'property:unit_detail' site.pk occ.unit_id %}">Vazgeç</a><button class="btn-danger">Sonlandır</button>
+  </div>
+</form>
+{% endblock %}

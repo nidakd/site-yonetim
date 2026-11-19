@@ -12,6 +12,13 @@ urlpatterns = [
     path("", include("apps.accounts.urls")),
     path("panel/", include("apps.tenancy.urls")),
     path("panel/islem-gecmisi/", include("apps.audit.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.property.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.people.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.billing.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.payments.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.expenses.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.ledger.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.reports.urls")),
     path(settings.ADMIN_URL, admin.site.urls),
 ]
 

@@ -1,0 +1,23 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Yevmiye · {{ site.name }}{% endblock %}
+{% block page_title %}Yevmiye defteri{% endblock %}
+{% block page_subtitle %}Her işlemin otomatik ürettiği çift taraflı kayıtlar. Değiştirilemez; düzeltme ters kayıtla yapılır.{% endblock %}
+{% block page_actions %}<a class="btn-secondary" href="{% url 'ledger:trial_balance' site.pk %}">Mizan</a>{% endblock %}
+{% block content %}
+<div class="space-y-4">
+{% for e in page %}
+  <section class="card overflow-x-auto">
+    <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-5 py-2.5 text-sm">
+      <span><span class="font-semibold">#{{ e.pk }}</span> · {{ e.date|tr_date }} · {{ e.description }}</span>
+      {% if e.reverses_id %}<span class="badge-gray">#{{ e.reverses_id }} kaydının tersi</span>{% endif %}
+    </div>
+    <table class="data-table"><tbody>
+      {% for ln in e.lines.all %}<tr><td class="w-1/2 {% if ln.credit %}pl-10{% endif %}">{{ ln.account.code }} {{ ln.account.name }}{% if ln.unit %} <span class="text-xs text-muted">· {{ ln.unit.label }}</span>{% endif %}</td>
+        <td class="num">{% if ln.debit %}{{ ln.debit|tl }}{% endif %}</td><td class="num">{% if ln.credit %}{{ ln.credit|tl }}{% endif %}</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+{% empty %}<div class="card card-body text-center text-muted">Kayıt yok.</div>{% endfor %}
+</div>
+{% if page.has_other_pages %}<nav class="mt-4 flex justify-between text-sm">{% if page.has_previous %}<a class="btn-secondary" href="?sayfa={{ page.previous_page_number }}">← Yeni</a>{% else %}<span></span>{% endif %}<span class="self-center text-muted">{{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn-secondary" href="?sayfa={{ page.next_page_number }}">Eski →</a>{% endif %}</nav>{% endif %}
+{% endblock %}

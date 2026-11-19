@@ -1,0 +1,17 @@
+{% extends "layouts/site.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-xl" novalidate>{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    {% for field in form %}{% if field.field.widget.input_type == "checkbox" %}
+    <label class="flex items-center gap-2 text-sm">{{ field }} {{ field.label }}</label>
+    {% else %}{% include "components/field.html" %}{% endif %}{% endfor %}
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% if back %}{% url back site.pk %}{% else %}{% url 'property:structure' site.pk %}{% endif %}">Vazgeç</a>
+    <button class="btn-primary">Kaydet</button>
+  </div>
+</form>
+{% endblock %}

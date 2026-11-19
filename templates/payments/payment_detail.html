@@ -1,0 +1,37 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Makbuz {{ payment.receipt_no }}{% endblock %}
+{% block page_title %}Makbuz {{ payment.receipt_no }}{% if payment.status == 'cancelled' %} <span class="badge-gray align-middle">İptal</span>{% endif %}{% endblock %}
+{% block page_subtitle %}{{ payment.unit.label }} · {{ payment.date|tr_date }} · {{ payment.get_channel_display }} · {{ payment.account.name }}{% endblock %}
+{% block page_actions %}<a class="btn-secondary" href="{% url 'payments:receipt' site.pk payment.pk %}" target="_blank">Makbuzu yazdır</a>
+<a class="btn-ghost" href="{% url 'property:unit_detail' site.pk payment.unit_id %}">Bölüme git</a>{% endblock %}
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-3">
+  <div class="card card-body"><p class="stat-label">Tutar</p><p class="stat-value">{{ payment.amount|tl }}</p></div>
+  <div class="card card-body"><p class="stat-label">Ödeyen</p><p class="mt-1 font-semibold">{{ payment.payer_name|default:"—" }}</p>{% if payment.reference %}<p class="text-xs text-muted">Ref: {{ payment.reference }}</p>{% endif %}</div>
+  <div class="card card-body"><p class="stat-label">Avansa kalan</p><p class="stat-value">{{ unallocated|tl }}</p></div>
+</div>
+<section class="card mt-6 overflow-x-auto">
+  <h2 class="border-b border-line px-5 py-3 font-semibold">Kapattığı borçlar</h2>
+  <table class="data-table">
+    <thead><tr><th>Borç</th><th>Son ödeme</th><th>Nasıl</th><th class="num">Tutar</th></tr></thead>
+    <tbody>
+    {% for a in allocations %}
+      <tr class="{% if not a.is_active %}text-muted line-through{% endif %}"><td>{{ a.charge.description }}</td><td>{{ a.charge.due_date|tr_date }}</td>
+        <td class="text-xs">{% if a.from_advance %}Sonradan avanstan mahsup{% else %}Ödeme anında{% endif %}{% if not a.is_active %} · geri alındı{% endif %}</td><td class="num">{{ a.amount|tl }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="py-6 text-center text-muted">Borçla eşleşmedi; tamamı avans.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+<p class="mt-4 text-xs text-muted">Kaydeden: {{ payment.created_by.full_name|default:"—" }} · {{ payment.created_at|date:"d.m.Y H:i" }}{% if payment.note %} · Not: {{ payment.note }}{% endif %}</p>
+{% if payment.status == 'cancelled' %}
+<div class="alert-warning mt-4">İptal: {{ payment.cancelled_at|date:"d.m.Y H:i" }} · {{ payment.cancelled_by.full_name }} · {{ payment.cancel_reason }}</div>
+{% elif can_manage %}
+<details class="card card-body mt-6 max-w-xl">
+  <summary class="cursor-pointer font-medium text-red-700">Tahsilatı iptal et</summary>
+  <p class="mt-2 text-sm text-muted">Geri dönen EFT, yanlış bölüme giriş gibi durumlar için. Eşleşmeler geri alınır, borçlar yeniden açılır, kasa/banka bakiyesi düşer. Makbuz numarası "iptal" olarak kalır.</p>
+  <form method="post" action="{% url 'payments:payment_cancel' site.pk payment.pk %}" class="mt-4 flex flex-wrap items-end gap-2">{% csrf_token %}
+    <div class="grow">{% include "components/field.html" with field=cancel_form.reason %}</div><button class="btn-danger">İptal et</button></form>
+</details>
+{% endif %}
+{% endblock %}

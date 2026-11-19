@@ -1,0 +1,18 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}{{ account.name }} · hareketler{% endblock %}
+{% block page_title %}{{ account.code }} {{ account.name }}{% endblock %}
+{% block page_subtitle %}{{ account.get_kind_display }} · bakiye {{ balance|tl }}{% endblock %}
+{% block content %}
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Borç</th><th class="num">Alacak</th><th class="num">Bakiye</th></tr></thead>
+    <tbody>
+    {% for ln, run in page %}<tr><td class="whitespace-nowrap">{{ ln.entry.date|tr_date }}</td><td>{{ ln.entry.description }}{% if ln.unit %} <span class="text-xs text-muted">· {{ ln.unit.label }}</span>{% endif %}</td>
+      <td class="num">{% if ln.debit %}{{ ln.debit|tl }}{% endif %}</td><td class="num">{% if ln.credit %}{{ ln.credit|tl }}{% endif %}</td><td class="num font-medium">{{ run|tl }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="py-10 text-center text-muted">Hareket yok.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if page.has_other_pages %}<nav class="mt-4 flex justify-between text-sm">{% if page.has_previous %}<a class="btn-secondary" href="?sayfa={{ page.previous_page_number }}">← Yeni</a>{% else %}<span></span>{% endif %}<span class="self-center text-muted">{{ page.number }} / {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="btn-secondary" href="?sayfa={{ page.next_page_number }}">Eski →</a>{% endif %}</nav>{% endif %}
+{% endblock %}
