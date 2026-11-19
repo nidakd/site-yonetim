@@ -18,6 +18,16 @@ PERMISSIONS: dict[str, set[str]] = {
     "site.update": {Role.ORG_ADMIN, Role.SITE_ADMIN},
     "audit.view": {Role.ORG_ADMIN, Role.AUDITOR},
     "members.manage": {Role.ORG_ADMIN},
+    # Faz 1: site işleri (siteye özel rol yalnızca o sitede geçerli)
+    "site.view": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT, Role.AUDITOR, Role.FIELD_STAFF},
+    "property.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN},
+    "people.view": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT, Role.AUDITOR, Role.FIELD_STAFF},
+    "people.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN},
+    "finance.view": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT, Role.AUDITOR},
+    "billing.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT},
+    "payments.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT},
+    "expenses.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT},
+    "ledger.lock": {Role.ORG_ADMIN, Role.ACCOUNTANT},
 }
 
 
@@ -62,3 +72,30 @@ def panel_view(perm: str = "org.view"):
         return wrapper
 
     return decorator
+
+
+def site_view(perm: str = "site.view"):
+    """Siteye bağlı panel görünümleri: `site_id` URL parametresini yetki kontrolünden sonra
+    `site` nesnesine çevirir. Başka kuruluşun sitesi bağlam dışında kaldığı için 404 olur."""
+
+    def decorator(view):
+        @panel_view(perm)
+        @wraps(view)
+        def wrapper(request, site_id: int, *args, **kwargs):
+            from django.shortcuts import get_object_or_404
+
+            from .models import Site
+
+            site = get_object_or_404(Site, pk=site_id)
+            request.session["active_site_id"] = site.pk
+            return view(request, site, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def require(request, perm: str, site_id: int | None = None) -> None:
+    """Görünüm içinde ek yetki kontrolü (ör. aynı sayfada okuma serbest, yazma yetkili)."""
+    if not has_perm(request, perm, site_id):
+        raise PermissionDenied

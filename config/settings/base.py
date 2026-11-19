@@ -48,6 +48,13 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.tenancy",
     "apps.audit",
+    "apps.property",
+    "apps.people",
+    "apps.ledger",
+    "apps.billing",
+    "apps.payments",
+    "apps.expenses",
+    "apps.reports",
 ]
 
 MIDDLEWARE = [
