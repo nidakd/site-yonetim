@@ -56,6 +56,8 @@ INSTALLED_APPS = [
     "apps.expenses",
     "apps.reports",
     "apps.imports",
+    "apps.comms",
+    "apps.residents",
 ]
 
 MIDDLEWARE = [
@@ -146,6 +148,15 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Site Yönetim <bildirim@localhost>")
+
+# SMS: geliştirmede konsola yazılır; canlıda sağlayıcı ayarlanana kadar gönderim kapalı.
+SMS_BACKEND = env("SMS_BACKEND", "apps.comms.sms.ConsoleBackend")
+RESIDENT_OTP_SECONDS = 5 * 60
+RESIDENT_OTP_MAX_TRIES = 5
+RESIDENT_OTP_PER_PHONE = 3  # 15 dakikada
+RESIDENT_OTP_PER_IP = 10  # saatte
+RESIDENT_REMEMBER_DAYS = 30
+PRIVACY_NOTICE_VERSION = "2026-11"
 
 ADMIN_URL = env("ADMIN_URL", "platform-yonetim/")
 

@@ -1,0 +1,12 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Yönetim seçin{% endblock %}
+{% block heading %}Hangi siteye bakmak istiyorsunuz?{% endblock %}
+{% block subheading %}Numaranız birden çok yönetimde kayıtlı.{% endblock %}
+{% block card %}
+<form method="post" class="space-y-3">{% csrf_token %}
+  {% for o in options %}
+  <button name="org" value="{{ o.org.pk }}" class="w-full rounded-lg border border-line p-3 text-left hover:border-brand-600 hover:bg-brand-50">
+    <span class="block font-medium">{{ o.sites|join:", " }}</span><span class="block text-xs text-muted">{{ o.org.name }}</span></button>
+  {% endfor %}
+</form>
+{% endblock %}

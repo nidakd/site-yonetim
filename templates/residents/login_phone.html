@@ -1,0 +1,13 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Sakin girişi{% endblock %}
+{% block heading %}Sakin girişi{% endblock %}
+{% block subheading %}Yönetimde kayıtlı cep telefonunuza bir kod gönderelim.{% endblock %}
+{% block card %}
+<form method="post" class="space-y-4" novalidate>{% csrf_token %}
+  {% include "components/form_errors.html" %}
+  {% include "components/field.html" with field=form.phone %}
+  <button class="btn-primary w-full">Kod gönder</button>
+</form>
+{% endblock %}
+{% block below %}<a class="hover:underline" href="{% url 'residents:login_password' %}">Şifreyle giriş</a> · <a class="hover:underline" href="{% url 'accounts:login' %}">Yönetici girişi</a>
+<p class="mt-3 text-xs">Numaranız kayıtlı değilse kod gelmez; site yönetiminizden numaranızı eklemesini isteyin.</p>{% endblock %}

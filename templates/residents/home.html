@@ -1,0 +1,27 @@
+{% extends "layouts/resident.html" %}
+{% load ui %}
+{% block title %}Bölümlerim{% endblock %}
+{% block page_title %}Bölümlerim{% endblock %}
+{% block page_subtitle %}{% if org_count > 1 %}<a class="text-brand-700 hover:underline" href="{% url 'residents:choose_org' %}">Başka bir yönetime geç</a>{% endif %}{% endblock %}
+{% block content %}
+<div class="grid gap-4 sm:grid-cols-2">
+  {% for c in cards %}
+  <a href="{% url 'residents:unit_detail' c.ru.unit.pk %}" class="card card-body block hover:ring-brand-600">
+    <p class="text-xs text-muted">{{ c.ru.unit.site.name }} · {{ c.ru.relations|join:", " }}</p>
+    <p class="mt-1 text-lg font-semibold">{{ c.ru.unit.label }}</p>
+    {% if c.balance > 0 %}<p class="stat-label mt-3">Kalan borç</p><p class="stat-value text-amber-700">{{ c.balance|tl }}</p>
+    {% elif c.balance < 0 %}<p class="stat-label mt-3">Avans (fazla ödeme)</p><p class="stat-value text-green-700">{{ c.balance|absval|tl }}</p>
+    {% else %}<p class="stat-label mt-3">Borç</p><p class="stat-value text-green-700">Borcunuz yok</p>{% endif %}
+    <p class="mt-2 text-xs text-muted">Son ödeme: {% if c.last_payment %}{{ c.last_payment.date|tr_date }} · {{ c.last_payment.amount|tl }}{% else %}—{% endif %}</p>
+  </a>
+  {% empty %}
+  <div class="alert-info sm:col-span-2">Bu numarayla kayıtlı güncel bir bölüm görünmüyor.</div>
+  {% endfor %}
+</div>
+{% for s in summaries %}
+<a href="{% url 'residents:site_summary' s.site.pk %}" class="card card-body mt-6 block hover:ring-brand-600">
+  <p class="font-semibold">{{ s.site.name }} · site durumu</p>
+  <p class="mt-1 text-sm text-muted">{% if s.settings.contact_note %}{{ s.settings.contact_note }}{% else %}Yönetimin paylaştığı genel bilgiler{% endif %}</p>
+</a>
+{% endfor %}
+{% endblock %}

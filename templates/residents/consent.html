@@ -1,0 +1,15 @@
+{% extends "layouts/resident.html" %}
+{% block title %}Aydınlatma metni{% endblock %}
+{% block page_title %}Kişisel verileriniz hakkında{% endblock %}
+{% block page_subtitle %}Devam etmeden önce lütfen okuyun (sürüm {{ version }}).{% endblock %}
+{% block content %}
+<article class="card card-body space-y-3 text-sm leading-6">
+  <p><b>Veri sorumlusu:</b> {{ org.name }} ({% for s in sites %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %} yönetimi).</p>
+  <p><b>İşlenen veriler:</b> adınız, soyadınız, telefon ve e-posta adresiniz, bağımsız bölümle ilişkiniz (malik/kiracı ve tarihleri), bölümün aidat borç ve ödeme kayıtları, portala giriş kayıtları (tarih, IP adresi).</p>
+  <p><b>Amaç:</b> 634 sayılı Kat Mülkiyeti Kanunu kapsamında ortak giderlerin paylaştırılması, aidat tahakkuku ve tahsilatı, makbuz düzenlenmesi, size borç ve ödeme bilgilerinizin gösterilmesi ve yönetimle ilgili bilgilendirme.</p>
+  <p><b>Hukuki sebep:</b> KVKK m. 5/2 (a) kanunlarda açıkça öngörülmesi, (ç) veri sorumlusunun hukuki yükümlülüğü ve (f) meşru menfaat.</p>
+  <p><b>Aktarım:</b> Veriler, yönetimin hizmet aldığı yazılım sağlayıcısının sunucularında (veri işleyen sıfatıyla) saklanır. Başka bir sakine sizin borcunuz ya da adınız gösterilmez.</p>
+  <p><b>Haklarınız:</b> KVKK m. 11 uyarınca verilerinize erişme, düzeltilmesini ya da silinmesini isteme ve itiraz etme haklarınız vardır. Başvurunuzu site yönetiminize iletebilirsiniz. Muhasebe kayıtları yasal saklama süreleri boyunca tutulur.</p>
+</article>
+<form method="post" class="mt-4">{% csrf_token %}<button class="btn-primary w-full sm:w-auto">Okudum, devam et</button></form>
+{% endblock %}

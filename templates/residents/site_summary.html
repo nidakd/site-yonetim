@@ -1,0 +1,29 @@
+{% extends "layouts/resident.html" %}
+{% load ui %}
+{% block title %}{{ site.name }}{% endblock %}
+{% block crumb %}<a class="text-sm text-muted hover:underline" href="{% url 'residents:home' %}">← Bölümlerim</a>{% endblock %}
+{% block page_title %}{{ site.name }} · site durumu{% endblock %}
+{% block page_subtitle %}Yönetimin paylaştığı genel bilgiler. Kişi ya da bölüm bazında bilgi gösterilmez.{% endblock %}
+{% block content %}
+{% if settings.contact_note %}<div class="alert-info mb-4">{{ settings.contact_note }}</div>{% endif %}
+<div class="grid gap-3 sm:grid-cols-2">
+  {% if overview.collection %}
+  <div class="card card-body"><p class="stat-label">{{ overview.month|period }} tahsilat oranı</p>
+    <p class="stat-value">{% if overview.collection.rate is not None %}%{{ overview.collection.rate }}{% else %}—{% endif %}</p>
+    <p class="text-xs text-muted">Bu ay tahakkuk edilen {{ overview.collection.accrued|tl }}, ödenen {{ overview.collection.paid|tl }}</p></div>
+  {% endif %}
+  {% if overview.cash_total is not None %}
+  <div class="card card-body"><p class="stat-label">Kasa ve banka toplamı</p><p class="stat-value">{{ overview.cash_total|tl }}</p></div>
+  {% endif %}
+</div>
+{% if overview.expenses is not None %}
+<section class="card mt-5 overflow-x-auto">
+  <h2 class="border-b border-line px-4 py-3 font-semibold">{{ overview.month.year }} giderleri</h2>
+  <table class="data-table">
+    <tbody>{% for e in overview.expenses %}<tr><td>{{ e.name }}</td><td class="num">{{ e.total|tl }}</td></tr>
+    {% empty %}<tr><td class="py-6 text-center text-muted">Bu yıl gider kaydı yok.</td></tr>{% endfor %}</tbody>
+    {% if overview.expenses %}<tfoot><tr class="font-semibold"><td>Toplam</td><td class="num">{{ overview.expense_total|tl }}</td></tr></tfoot>{% endif %}
+  </table>
+</section>
+{% endif %}
+{% endblock %}

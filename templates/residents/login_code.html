@@ -1,0 +1,13 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Kodu girin{% endblock %}
+{% block heading %}Kodu girin{% endblock %}
+{% block subheading %}{{ masked }} numarası kayıtlıysa 6 haneli kod gönderildi. Kod 5 dakika geçerli.{% endblock %}
+{% block card %}
+<form method="post" class="space-y-4" novalidate>{% csrf_token %}
+  {% include "components/form_errors.html" %}
+  {% include "components/field.html" with field=form.code %}
+  <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ form.remember.html_name }}" id="{{ form.remember.id_for_label }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.remember.value %} checked{% endif %}> <span>{{ form.remember.label }}<span class="block text-xs text-muted">Ortak kullanılan cihazlarda işaretlemeyin.</span></span></label>
+  <button class="btn-primary w-full">Giriş yap</button>
+</form>
+{% endblock %}
+{% block below %}<a class="hover:underline" href="{% url 'residents:login' %}">Kod gelmedi / numarayı değiştir</a>{% endblock %}

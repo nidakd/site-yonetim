@@ -2,7 +2,7 @@
 {% load ui %}
 {% block breadcrumb %}<a class="text-sm text-muted hover:underline" href="{% url 'tenancy:site_detail' site.pk %}">{{ site.name }}</a>{% block crumb_extra %}{% endblock %}{% endblock %}
 {% block site_nav %}
-{% site_can 'finance.view' as fin %}{% site_can 'people.view' as ppl %}{% site_can 'setup.manage' as setup %}
+{% site_can 'finance.view' as fin %}{% site_can 'people.view' as ppl %}{% site_can 'setup.manage' as setup %}{% site_can 'site.update' as siteupd %}
 {% with vn=request.resolver_match.view_name %}
 <nav class="-mx-4 mb-6 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0" aria-label="Site menüsü">
   <div class="flex min-w-max gap-1 text-sm">
@@ -19,6 +19,7 @@
     {% url 'ledger:settings' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn == 'ledger:settings' %}site-tab-active{% endif %}">Ayarlar</a>
     {% endif %}
     {% if setup %}{% url 'imports:setup_home' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn|slice:':8' == 'imports:' %}site-tab-active{% endif %}">Kurulum</a>{% endif %}
+    {% if siteupd %}{% url 'residents_panel:portal_settings' site.pk as u %}<a href="{{ u }}" class="site-tab {% if vn|slice:':16' == 'residents_panel:' %}site-tab-active{% endif %}">Sakin portalı</a>{% endif %}
   </div>
 </nav>
 {% endwith %}

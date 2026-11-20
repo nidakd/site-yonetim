@@ -1,0 +1,24 @@
+{% extends "layouts/site.html" %}
+{% block title %}Sakin portalı · {{ site.name }}{% endblock %}
+{% block page_title %}Sakin portalı{% endblock %}
+{% block page_subtitle %}Sakinler yönetimin kaydettiği cep telefonuyla SMS koduyla girer ve yalnızca kendi bölümlerini görür.{% endblock %}
+{% block content %}
+<div class="grid gap-6 xl:grid-cols-5">
+<form method="post" class="card xl:col-span-3" novalidate>{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    {% for field in form %}{% if field.field.widget.input_type == "checkbox" %}
+    <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if field.value %} checked{% endif %}>
+      <span><span class="font-medium">{{ field.label|capfirst }}</span>{% if field.help_text %}<span class="block text-xs text-muted">{{ field.help_text }}</span>{% endif %}</span></label>
+    {% if forloop.first %}<p class="section-title pt-2">Anonim site özeti</p><p class="text-xs text-muted">Seçilenler sakinlere toplu olarak gösterilir. Borçlu listesi ya da başka bir bölümün borcu hiçbir seçenekte gösterilmez.</p>{% endif %}
+    {% else %}{% include "components/field.html" with field=field %}{% endif %}{% endfor %}
+  </div>
+  <div class="flex justify-end border-t border-line px-5 py-4 sm:px-6"><button class="btn-primary">Kaydet</button></div>
+</form>
+<aside class="card card-body text-sm xl:col-span-2">
+  <h2 class="section-title">Sakinlere nasıl duyurulur?</h2>
+  <p class="mt-1 text-muted">Giriş adresi: <code class="rounded bg-canvas px-1">{{ request.scheme }}://{{ request.get_host }}{% url 'residents:login' %}</code></p>
+  <p class="mt-2 text-muted">Bir sakin yalnızca, bölüm sayfasında telefonu kayıtlı ve ilişkisi bugün geçerli olan bölümleri görür. Taşınan ya da satan kişinin ilişkisini sonlandırdığınızda erişimi de biter.</p>
+</aside>
+</div>
+{% endblock %}

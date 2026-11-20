@@ -60,6 +60,11 @@ ACTIONS: dict[str, str] = {
     "import.uploaded": "Excel dosyası yüklendi",
     "import.applied": "Excel içe aktarması uygulandı",
     "import.discarded": "Excel içe aktarmasından vazgeçildi",
+    "resident.login": "Sakin giriş yaptı",
+    "resident.consent": "Sakin aydınlatma metnini okudu",
+    "resident.password_set": "Sakin şifre belirledi",
+    "portal.updated": "Sakin portalı ayarları değişti",
+    "notification.sent": "Bildirim gönderildi",
 }
 
 

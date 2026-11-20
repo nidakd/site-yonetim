@@ -1,0 +1,50 @@
+{% extends "layouts/resident.html" %}
+{% load ui %}
+{% block title %}{{ unit.label }}{% endblock %}
+{% block crumb %}<a class="text-sm text-muted hover:underline" href="{% url 'residents:home' %}">← Bölümlerim</a>{% endblock %}
+{% block page_title %}{{ unit.label }}{% endblock %}
+{% block page_subtitle %}{{ unit.site.name }} · {{ ru.relations|join:", " }} · {{ ru.visible_from|tr_date }} tarihinden beri{% endblock %}
+{% block content %}
+<div class="grid grid-cols-2 gap-3">
+  <div class="card card-body"><p class="stat-label">{% if balance < 0 %}Avans{% else %}Kalan borç{% endif %}</p><p class="stat-value">{{ balance|absval|tl }}</p></div>
+  <div class="card card-body"><p class="stat-label">Açık borç kalemi</p><p class="stat-value">{{ charges|length }}</p></div>
+</div>
+
+<section class="card mt-5">
+  <h2 class="border-b border-line px-4 py-3 font-semibold">Açık borçlar</h2>
+  <ul class="divide-y divide-line">
+  {% for c in charges %}
+    <li class="px-4 py-3">
+      <div class="flex items-baseline justify-between gap-3"><span class="font-medium">{{ c.description }}</span><span class="num font-semibold">{{ c.remaining|tl }}</span></div>
+      <p class="text-xs text-muted">Son ödeme {{ c.due_date|tr_date }} · tutar {{ c.amount|tl }}{% if c.paid %} · ödenen {{ c.paid|tl }}{% endif %}</p>
+      {% if c.paid %}<div class="mt-2 h-1.5 rounded-full bg-line" role="progressbar" aria-valuenow="{{ c.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="Ödenen oran"><div class="h-1.5 rounded-full bg-brand-600" style="width: {{ c.percent }}%"></div></div>{% endif %}
+    </li>
+  {% empty %}<li class="px-4 py-6 text-center text-sm text-muted">Açık borç yok.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="card mt-5">
+  <h2 class="border-b border-line px-4 py-3 font-semibold">Ödemeler</h2>
+  <ul class="divide-y divide-line">
+  {% for p in payments %}
+    <li class="flex items-start justify-between gap-3 px-4 py-3 {% if p.status == 'cancelled' %}text-muted{% endif %}">
+      <div><p class="font-medium">{{ p.date|tr_date }} · {{ p.amount|tl }}{% if p.status == 'cancelled' %} <span class="badge-gray">İptal</span>{% endif %}</p>
+        <p class="text-xs text-muted">{% if p.is_opening %}Açılış avansı (önceki dönemden fazla ödeme){% else %}{{ p.get_channel_display }}{% for a in p.allocations.all %}{% if a.is_active %}{% if forloop.first %} · kapattığı: {% endif %}{{ a.charge.description }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}{% endif %}</p></div>
+      {% if not p.is_opening %}<a class="shrink-0 text-sm text-brand-700 hover:underline" href="{% url 'residents:receipt' p.pk %}" target="_blank">Makbuz</a>{% endif %}
+    </li>
+  {% empty %}<li class="px-4 py-6 text-center text-sm text-muted">Henüz ödeme yok.</li>{% endfor %}
+  </ul>
+</section>
+
+<details class="card mt-5">
+  <summary class="cursor-pointer px-4 py-3 font-semibold">Hesap ekstresi</summary>
+  <div class="overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Borç</th><th class="num">Ödeme</th><th class="num">Bakiye</th></tr></thead>
+    <tbody>{% for r in statement %}<tr><td class="whitespace-nowrap">{{ r.date|tr_date }}</td><td>{{ r.description }}</td><td class="num">{% if r.debit %}{{ r.debit|tl }}{% endif %}</td><td class="num">{% if r.credit %}{{ r.credit|tl }}{% endif %}</td><td class="num">{{ r.balance|tl }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="py-6 text-center text-muted">Hareket yok.</td></tr>{% endfor %}</tbody>
+  </table>
+  </div>
+  <p class="px-4 py-3 text-xs text-muted">Bakiye: artı borç, eksi avans anlamına gelir. Son 60 hareket gösterilir.</p>
+</details>
+{% endblock %}
