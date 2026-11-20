@@ -56,3 +56,10 @@ class PortalSettingsForm(forms.ModelForm):
     class Meta:
         model = PortalSettings
         fields = ["portal_enabled", "show_collection_rate", "show_cash_balance", "show_expenses", "contact_note"]
+        labels = {
+            "portal_enabled": "Sakin portalı açık",
+            "show_collection_rate": "Bu ayın tahsilat oranı",
+            "show_cash_balance": "Kasa ve banka toplamı",
+            "show_expenses": "Giderler (kategori toplamları)",
+            "contact_note": "İletişim notu",
+        }

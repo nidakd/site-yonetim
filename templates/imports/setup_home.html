@@ -32,7 +32,7 @@
         {% include "components/field.html" with field=form.monthly_fee %}
       </div>
       <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ form.lock.html_name }}" id="{{ form.lock.id_for_label }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.lock.value %} checked{% endif %}>
-        <span>{{ form.lock.label }}<span class="block text-xs text-muted">Devreden bakiyelerin sonradan yanlışlıkla değişmesini önler (muhasebe yetkisi gerekir).</span></span></label>
+        <span>{{ form.lock.label }}<span class="block text-xs text-muted">Devreden bakiyelerin sonradan yanlışlıkla değişmesini önler (muhasebe yetkisi gerekir). Birden çok dosya yükleyecekseniz yalnızca sonuncuda işaretleyin.</span></span></label>
     </div>
     <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6"><button class="btn-primary">Yükle ve önizle</button></div>
   </form>

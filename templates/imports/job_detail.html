@@ -71,7 +71,7 @@
     <thead><tr><th>Blok</th><th>No</th><th>Tip</th><th>Arsa payı</th><th>Malik</th><th>Kiracı</th><th>Borç sorumlusu</th></tr></thead>
     <tbody>
     {% for u in plan.new_units|slice:":200" %}
-      <tr><td>{{ u.block|default:"—" }}</td><td class="font-medium">{{ u.number }}</td><td>{{ u.type|default:"—" }}</td><td>{% if u.share_num %}{{ u.share_num }}/{{ u.share_den }}{% else %}—{% endif %}</td>
+      <tr><td>{{ u.block|default:"—" }}</td><td class="font-medium">{{ u.number }}</td><td>{{ u.type|default:"—" }}</td><td>{% if u.share_num %}{{ u.share_num|stringformat:"d" }}/{{ u.share_den|stringformat:"d" }}{% else %}—{% endif %}</td>
         <td>{% if u.owner %}{{ u.owner.first }} {{ u.owner.last }}{% else %}—{% endif %}</td><td>{% if u.tenant %}{{ u.tenant.first }} {{ u.tenant.last }}{% else %}—{% endif %}</td>
         <td>{% if u.liable == 'tenant' %}Kiracı{% else %}Malik{% endif %}</td></tr>
     {% endfor %}

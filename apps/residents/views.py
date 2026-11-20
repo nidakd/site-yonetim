@@ -180,7 +180,7 @@ def consent(request):
     return render(
         request,
         "residents/consent.html",
-        {"org": org, "sites": resident.sites, "version": settings.PRIVACY_NOTICE_VERSION},
+        {"resident": resident, "org": org, "sites": resident.sites, "version": settings.PRIVACY_NOTICE_VERSION},
     )
 
 
