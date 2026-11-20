@@ -19,6 +19,7 @@ urlpatterns = [
     path("panel/siteler/<int:site_id>/", include("apps.expenses.urls")),
     path("panel/siteler/<int:site_id>/", include("apps.ledger.urls")),
     path("panel/siteler/<int:site_id>/", include("apps.reports.urls")),
+    path("panel/siteler/<int:site_id>/", include("apps.imports.urls")),
     path(settings.ADMIN_URL, admin.site.urls),
 ]
 

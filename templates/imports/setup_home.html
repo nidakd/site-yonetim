@@ -1,0 +1,71 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Excel'den kurulum{% endblock %}
+{% block page_title %}Excel'den kurulum{% endblock %}
+{% block page_subtitle %}Dosyayı yükleyin, önizlemede kontrol edin, onaylayın. Onaylamadan hiçbir kayıt değişmez.{% endblock %}
+{% block content %}
+<div class="grid gap-6 xl:grid-cols-5">
+  <form method="post" enctype="multipart/form-data" class="card xl:col-span-3" novalidate
+        x-data="{ kind: '{{ form.kind.value|default:'setup' }}' }">{% csrf_token %}
+    <div class="card-body space-y-5">
+      {% include "components/form_errors.html" %}
+      <fieldset>
+        <legend class="label">{{ form.kind.label }}</legend>
+        <div class="mt-1 grid gap-3 sm:grid-cols-2">
+          {% for choice in form.kind %}
+          <label class="flex cursor-pointer gap-3 rounded-lg border border-line p-3 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+            {{ choice.tag }}
+            <span><span class="block font-medium">{{ choice.choice_label }}</span>
+              <span class="block text-xs text-muted">{% if choice.data.value == 'setup' %}Bloklar, bölümler, malik/kiracılar ve açılış bakiyeleri (bu sitenin şablonu).{% else %}Eski Excel takibiniz: satırlarda daireler, sütunlarda aylar, hücrelerde ödenen tutar. Açılış bakiyesi çıkarılır.{% endif %}</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      {% include "components/field.html" with field=form.file %}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {% include "components/field.html" with field=form.opening_date %}
+        <div x-show="kind === 'setup'">{% include "components/field.html" with field=form.start_date %}</div>
+      </div>
+      <div x-show="kind === 'grid'" x-cloak class="grid gap-4 sm:grid-cols-3">
+        {% include "components/field.html" with field=form.unit_column %}
+        {% include "components/field.html" with field=form.first_month %}
+        {% include "components/field.html" with field=form.monthly_fee %}
+      </div>
+      <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ form.lock.html_name }}" id="{{ form.lock.id_for_label }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.lock.value %} checked{% endif %}>
+        <span>{{ form.lock.label }}<span class="block text-xs text-muted">Devreden bakiyelerin sonradan yanlışlıkla değişmesini önler (muhasebe yetkisi gerekir).</span></span></label>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6"><button class="btn-primary">Yükle ve önizle</button></div>
+  </form>
+  <aside class="space-y-4 xl:col-span-2">
+    <div class="card card-body">
+      <h2 class="section-title">1. Şablonu indirin</h2>
+      <p class="mt-1 text-sm text-muted">İki sayfa: <b>Bölümler</b> (yapı ve kişiler) ve <b>Açılış bakiyeleri</b> (geçmiş aylardan kalan borçlar). Açıklamalar sayfası her sütunu anlatır.</p>
+      <a class="btn-secondary mt-3" href="{% url 'imports:template' site.pk %}">Kurulum şablonunu indir</a>
+    </div>
+    <div class="card card-body text-sm">
+      <h2 class="section-title">Önerilen sıra</h2>
+      <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted">
+        <li>Şablonla bölümleri ve kişileri yükleyin.</li>
+        <li>Açılış borçlarını aynı dosyada ya da eski aylık çizelgenizden yükleyin.</li>
+        <li>Bölümler ve borçlular sayfasından kontrol edin; ardından ilk ayın tahakkukunu yapın.</li>
+      </ol>
+      <p class="mt-3 text-xs text-muted">Dosya sunucuda saklanmaz. Önizleme için okunan satırlar, onay ya da vazgeçme sonrası silinir.</p>
+    </div>
+  </aside>
+</div>
+{% if jobs %}
+<section class="card mt-6 overflow-x-auto">
+  <h2 class="border-b border-line px-5 py-3 font-semibold">Önceki yüklemeler</h2>
+  <table class="data-table">
+    <thead><tr><th>Dosya</th><th>Tür</th><th>Yükleyen</th><th>Tarih</th><th>Durum</th></tr></thead>
+    <tbody>
+    {% for j in jobs %}
+      <tr><td><a class="font-medium text-brand-700 hover:underline" href="{% url 'imports:job_detail' site.pk j.pk %}">{{ j.file_name }}</a></td><td>{{ j.get_kind_display }}</td>
+        <td>{{ j.created_by.full_name|default:"—" }}</td><td class="whitespace-nowrap">{{ j.created_at|date:"d.m.Y H:i" }}</td>
+        <td>{% if j.status == 'applied' %}<span class="badge-green">Uygulandı</span>{% elif j.status == 'preview' %}<span class="badge-amber">Önizlemede</span>{% else %}<span class="badge-gray">Vazgeçildi</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}

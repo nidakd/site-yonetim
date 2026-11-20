@@ -28,6 +28,8 @@ PERMISSIONS: dict[str, set[str]] = {
     "payments.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT},
     "expenses.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN, Role.ACCOUNTANT},
     "ledger.lock": {Role.ORG_ADMIN, Role.ACCOUNTANT},
+    # Faz 2
+    "setup.manage": {Role.ORG_ADMIN, Role.SITE_ADMIN},
 }
 
 

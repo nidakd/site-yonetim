@@ -1,0 +1,83 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}{{ job.file_name }}{% endblock %}
+{% block page_title %}{{ job.file_name }}{% endblock %}
+{% block page_subtitle %}{{ job.get_kind_display }} · {{ job.created_at|date:"d.m.Y H:i" }}{% if job.options.opening_date %} · açılış tarihi {{ job.options.opening_date }}{% endif %}{% endblock %}
+{% block page_actions %}<a class="btn-ghost" href="{% url 'imports:setup_home' site.pk %}">Kurulum sayfası</a>{% endblock %}
+{% block content %}
+{% if job.status == 'preview' %}
+  {% if duplicate %}<div class="alert-warning mb-4">Bu dosyanın aynısı {{ duplicate.applied_at|date:"d.m.Y H:i" }} tarihinde uygulanmış. Tekrar uygularsanız açılış bakiyeleri iki kez yazılır.</div>{% endif %}
+  {% if errors %}<div class="alert-error mb-4">{{ errors }} hata var. Excel'de düzeltip dosyayı yeniden yükleyin; bu hâliyle uygulanamaz.</div>
+  {% else %}<div class="alert-info mb-4">Önizleme. Henüz hiçbir kayıt değişmedi. Kontrol edip onaylayın.</div>{% endif %}
+{% elif job.status == 'applied' %}
+  <div class="alert-success mb-4">Uygulandı: {{ job.applied_at|date:"d.m.Y H:i" }} · {{ job.applied_by.full_name }}. Düzeltme gerekirse tahakkuk/tahsilat iptaliyle (ters kayıt) yapılır.</div>
+{% else %}
+  <div class="alert-warning mb-4">Bu dosyadan vazgeçildi; hiçbir kayıt değişmedi.</div>
+{% endif %}
+
+{% if summary %}
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  {% if job.kind == 'setup' %}
+  <div class="card card-body"><p class="stat-label">Yeni bölüm</p><p class="stat-value">{{ summary.yeni_bolum }}</p><p class="text-xs text-muted">{{ summary.yeni_blok }} yeni blok · {{ summary.yeni_tip }} yeni tip{% if summary.mevcut_bolum %} · {{ summary.mevcut_bolum }} zaten kayıtlı{% endif %}</p></div>
+  <div class="card card-body"><p class="stat-label">Kişi</p><p class="stat-value">{{ summary.yeni_kisi }}</p><p class="text-xs text-muted">yeni · {{ summary.eslesen_kisi }} kayıtlı kişiyle eşleşti · {{ summary.iliski }} malik/kiracı ilişkisi</p></div>
+  {% endif %}
+  <div class="card card-body"><p class="stat-label">Açılış borcu</p><p class="stat-value">{{ summary.acilis_borc_toplam|tl }}</p><p class="text-xs text-muted">{{ summary.acilis_borc_kalemi }} kalem (ay ay)</p></div>
+  <div class="card card-body"><p class="stat-label">Açılış avansı</p><p class="stat-value">{{ summary.acilis_avans_toplam|tl }}</p><p class="text-xs text-muted">{{ summary.acilis_avans_bolum }} bölüm</p></div>
+</div>
+{% endif %}
+
+{% if job.status == 'preview' and not errors %}
+<div class="mt-6 flex flex-wrap gap-2">
+  <form method="post" action="{% url 'imports:job_apply' site.pk job.pk %}">{% csrf_token %}<button class="btn-primary">Onayla ve uygula</button></form>
+  <form method="post" action="{% url 'imports:job_discard' site.pk job.pk %}">{% csrf_token %}<button class="btn-ghost">Vazgeç</button></form>
+</div>
+{% elif job.status == 'preview' %}
+<form class="mt-6" method="post" action="{% url 'imports:job_discard' site.pk job.pk %}">{% csrf_token %}<button class="btn-secondary">Bu dosyadan vazgeç</button></form>
+{% endif %}
+
+{% if issues %}
+<section class="card mt-6 overflow-x-auto">
+  <h2 class="border-b border-line px-5 py-3 font-semibold">Bulgular ({{ issues|length }})</h2>
+  <table class="data-table">
+    <thead><tr><th>Düzey</th><th>Yer</th><th>Açıklama</th></tr></thead>
+    <tbody>
+    {% for i in issues %}
+      <tr><td>{% if i.level == 'error' %}<span class="badge-amber">Hata</span>{% elif i.level == 'warning' %}<span class="badge-blue">Uyarı</span>{% else %}<span class="badge-gray">Bilgi</span>{% endif %}</td>
+        <td class="whitespace-nowrap font-mono text-xs">{{ i.where }}</td><td>{{ i.message }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if plan and job.kind == 'grid' and plan.grid_rows %}
+<section class="card mt-6 overflow-x-auto">
+  <h2 class="border-b border-line px-5 py-3 font-semibold">Çizelgeden çıkan bakiyeler</h2>
+  <table class="data-table">
+    <thead><tr><th>Satır</th><th>Çizelgede</th><th>Bölüm</th><th class="num">Aylık</th><th class="num">Beklenen</th><th class="num">Ödenen</th><th class="num">Borç</th><th class="num">Avans</th></tr></thead>
+    <tbody>
+    {% for r in plan.grid_rows %}
+      <tr class="{% if not r.unit %}text-muted{% endif %}"><td>{{ r.row }}</td><td>{{ r.label }}</td><td class="font-medium">{{ r.unit.label|default:"eşleşmedi" }}</td>
+        <td class="num">{{ r.monthly|tl }}</td><td class="num">{{ r.expected|tl }}</td><td class="num">{{ r.paid|tl }}</td><td class="num">{{ r.owed|tl }}</td><td class="num">{{ r.advance|tl }}</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr class="font-semibold"><td colspan="4">Toplam</td><td class="num">{{ grid_totals.expected|tl }}</td><td class="num">{{ grid_totals.paid|tl }}</td><td class="num">{{ grid_totals.owed|tl }}</td><td class="num">{{ grid_totals.advance|tl }}</td></tr></tfoot>
+  </table>
+</section>
+{% elif plan and plan.new_units %}
+<section class="card mt-6 overflow-x-auto">
+  <h2 class="border-b border-line px-5 py-3 font-semibold">Açılacak bölümler</h2>
+  <table class="data-table">
+    <thead><tr><th>Blok</th><th>No</th><th>Tip</th><th>Arsa payı</th><th>Malik</th><th>Kiracı</th><th>Borç sorumlusu</th></tr></thead>
+    <tbody>
+    {% for u in plan.new_units|slice:":200" %}
+      <tr><td>{{ u.block|default:"—" }}</td><td class="font-medium">{{ u.number }}</td><td>{{ u.type|default:"—" }}</td><td>{% if u.share_num %}{{ u.share_num }}/{{ u.share_den }}{% else %}—{% endif %}</td>
+        <td>{% if u.owner %}{{ u.owner.first }} {{ u.owner.last }}{% else %}—{% endif %}</td><td>{% if u.tenant %}{{ u.tenant.first }} {{ u.tenant.last }}{% else %}—{% endif %}</td>
+        <td>{% if u.liable == 'tenant' %}Kiracı{% else %}Malik{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if plan.new_units|length > 200 %}<p class="px-5 py-3 text-xs text-muted">İlk 200 bölüm gösteriliyor.</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -1,19 +1,9 @@
-import re
-
 from django import forms
 
 from apps.core.forms import DateInput
+from domain.phone import is_valid_phone, normalize_phone
 
 from .models import Occupancy, Person
-
-
-def normalize_phone(value: str) -> str:
-    digits = re.sub(r"\D", "", value or "")
-    if digits.startswith("90") and len(digits) == 12:
-        digits = "0" + digits[2:]
-    if digits and len(digits) == 10:
-        digits = "0" + digits
-    return digits
 
 
 class PersonForm(forms.ModelForm):
@@ -24,7 +14,7 @@ class PersonForm(forms.ModelForm):
 
     def clean_phone(self):
         phone = normalize_phone(self.cleaned_data["phone"])
-        if phone and not re.fullmatch(r"0\d{10}", phone):
+        if phone and not is_valid_phone(phone):
             raise forms.ValidationError("Telefonu 05xx xxx xx xx biçiminde girin.")
         return phone
 
@@ -58,7 +48,7 @@ class OccupancyForm(forms.ModelForm):
             if not (data.get("first_name") or "").strip() or not (data.get("last_name") or "").strip():
                 raise forms.ValidationError("Kayıtlı bir kişi seçin ya da yeni kişinin adını ve soyadını girin.")
             phone = normalize_phone(data.get("phone", ""))
-            if phone and not re.fullmatch(r"0\d{10}", phone):
+            if phone and not is_valid_phone(phone):
                 self.add_error("phone", "Telefonu 05xx xxx xx xx biçiminde girin.")
             data["phone"] = phone
         return data
