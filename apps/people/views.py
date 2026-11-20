@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q
+from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -10,6 +11,7 @@ from apps.core.utils import changes, snapshot
 from apps.property.models import Unit
 from apps.tenancy.permissions import site_view
 
+from . import services
 from .forms import OccupancyForm, PersonForm
 from .models import Occupancy, Person, active_on
 
@@ -44,8 +46,31 @@ def person_detail(request, site, person_id: int):
     return render(
         request,
         "people/person_detail.html",
-        {"site": site, "person": person, "occupancies": occupancies, "today": timezone.localdate()},
+        {
+            "site": site,
+            "person": person,
+            "occupancies": occupancies,
+            "today": timezone.localdate(),
+            "can_anonymize": services.can_anonymize(person),
+        },
     )
+
+
+@site_view("people.manage")
+def person_anonymize(request, site, person_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    person = get_object_or_404(site_people(site), pk=person_id)
+    if request.POST.get("confirm") != "1":
+        messages.error(request, "Onay kutusunu işaretleyin.")
+    else:
+        try:
+            services.anonymize(person, site_id=site.pk)
+        except services.AnonymizeError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Kişi anonimleştirildi. Muhasebe kayıtları korunur.")
+    return redirect("people:person_detail", site_id=site.pk, person_id=person.pk)
 
 
 @site_view("people.manage")

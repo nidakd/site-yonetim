@@ -35,6 +35,16 @@
         {% empty %}<tr><td colspan="5" class="py-6 text-center text-muted">Hareket yok.</td></tr>{% endfor %}
         </tbody></table></div>
     </section>
+    {% site_can 'payments.manage' as pay %}
+    <section class="card">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3"><h2 class="font-semibold">E-posta bildirimleri</h2>
+        {% if pay %}<form method="post" action="{% url 'comms:send_statement' site.pk unit.pk %}">{% csrf_token %}<button class="btn-secondary">Ekstreyi e-postayla gönder</button></form>{% endif %}</div>
+      <ul class="divide-y divide-line text-sm">
+        {% for n in notifications %}<li class="flex flex-wrap justify-between gap-2 px-5 py-2"><span>{{ n.get_kind_display }} · {{ n.recipient }}</span>
+          <span class="text-xs text-muted">{{ n.created_at|date:"d.m.Y H:i" }} · {% if n.status == 'sent' %}gönderildi{% else %}<span class="text-red-700">gönderilemedi</span>{% endif %}</span></li>
+        {% empty %}<li class="px-5 py-3 text-muted">Henüz bildirim gönderilmedi. Makbuzlar, e-postası kayıtlı ve "bildirim alır" işaretli malik/kiracıya tahsilatta otomatik gider.</li>{% endfor %}
+      </ul>
+    </section>
     {% endif %}
   </div>
   <div class="space-y-6">

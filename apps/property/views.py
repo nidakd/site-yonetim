@@ -116,6 +116,7 @@ def unit_detail(request, site, unit_id: int):
             "open_charges": unit_open_charges(unit),
             "statement": unit_statement(unit, limit=12),
             "today": today,
+            "notifications": unit.notifications.select_related("created_by")[:5],
         },
     )
 

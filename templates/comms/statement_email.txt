@@ -1,0 +1,17 @@
+{% load ui %}{% autoescape off %}Sayın {{ person.full_name }},
+
+{{ site.name }} {{ unit.label }} hesap durumu ({{ today|tr_date }}):
+{% if balance > 0 %}Kalan borç: {{ balance|tl }}{% elif balance < 0 %}Avans (fazla ödeme): {{ balance|absval|tl }}{% else %}Borcunuz bulunmuyor.{% endif %}
+{% if charges %}
+Açık borçlar:
+{% for c in charges %}- {{ c.description }} (son ödeme {{ c.due_date|tr_date }}): {{ c.remaining|tl }}
+{% endfor %}{% endif %}{% if rows %}
+Son hareketler:
+{% for r in rows %}- {{ r.date|tr_date }} {{ r.description }}: {% if r.debit %}+{{ r.debit|tl }}{% else %}-{{ r.credit|tl }}{% endif %} (bakiye {{ r.balance|tl }})
+{% endfor %}{% endif %}
+Ayrıntılar ve makbuzlar sakin portalında: {{ portal_url }}
+
+{{ site.name }} yönetimi
+
+Bu e-posta bilgilendirme amaçlıdır. Bildirim almak istemiyorsanız site yönetiminize bildirin.
+{% endautoescape %}

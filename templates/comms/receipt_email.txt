@@ -1,0 +1,17 @@
+{% load ui %}{% autoescape off %}Sayın {{ person.full_name }},
+
+{{ site.name }} {{ unit.label }} için {{ payment.date|tr_date }} tarihli {{ payment.amount|tl }} ödemeniz alındı.
+Makbuz no: {{ payment.receipt_no }} ({{ payment.get_channel_display }})
+{% if allocations %}
+Kapattığı borçlar:
+{% for a in allocations %}- {{ a.charge.description }}: {{ a.amount|tl }}
+{% endfor %}{% endif %}{% if advance > 0 %}
+Avans olarak ayrılan: {{ advance|tl }} (sonraki borçlara otomatik mahsup edilir)
+{% endif %}
+Makbuzu ve hesap ekstrenizi sakin portalından görebilirsiniz (yönetimde kayıtlı cep telefonunuzla giriş):
+{{ portal_url }}
+
+{{ site.name }} yönetimi
+
+Bu e-posta bilgilendirme amaçlıdır. Bildirim almak istemiyorsanız site yönetiminize bildirin.
+{% endautoescape %}

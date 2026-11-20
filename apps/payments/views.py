@@ -58,7 +58,12 @@ def payment_create(request, site):
         except services.PaymentError as exc:
             form.add_error(None, str(exc))
         else:
-            messages.success(request, f"Tahsilat kaydedildi. Makbuz no {payment.receipt_no}.")
+            from apps.comms.services import send_receipt
+
+            sent = send_receipt(payment, user=request.user, request=request)
+            mailed = sum(1 for n in sent if n.status == "sent")
+            note = f" Makbuz {mailed} kişiye e-postayla gönderildi." if mailed else ""
+            messages.success(request, f"Tahsilat kaydedildi. Makbuz no {payment.receipt_no}.{note}")
             return redirect("payments:payment_detail", site_id=site.pk, payment_id=payment.pk)
     ctx = {
         "site": site,

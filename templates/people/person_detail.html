@@ -3,7 +3,7 @@
 {% block title %}{{ person.full_name }}{% endblock %}
 {% block page_title %}{{ person.full_name }}{% endblock %}
 {% block page_subtitle %}{% if person.phone %}{{ person.phone }}{% endif %}{% if person.email %} · {{ person.email }}{% endif %}{% endblock %}
-{% block page_actions %}{% site_can 'people.manage' as pm %}{% if pm %}<a class="btn-secondary" href="{% url 'people:person_update' site.pk person.pk %}">Düzenle</a>{% endif %}{% endblock %}
+{% block page_actions %}{% site_can 'people.manage' as pm %}{% if pm and not person.is_anonymized %}<a class="btn-secondary" href="{% url 'people:person_update' site.pk person.pk %}">Düzenle</a>{% endif %}{% endblock %}
 {% block content %}
 <div class="card overflow-x-auto">
   <table class="data-table">
@@ -19,4 +19,17 @@
   </table>
 </div>
 {% if person.notes %}<div class="card card-body mt-6 text-sm"><h2 class="section-title">Not</h2>{{ person.notes|linebreaksbr }}</div>{% endif %}
+{% site_can 'people.manage' as pm %}
+{% if person.is_anonymized %}<div class="alert-info mt-6">Bu kişi anonimleştirilmiş. İletişim bilgileri silindi; muhasebe kayıtları ve makbuzlar korunur.</div>
+{% elif pm %}
+<details class="card card-body mt-6 max-w-xl">
+  <summary class="cursor-pointer font-medium text-red-700">Kişiyi anonimleştir (KVKK)</summary>
+  {% if can_anonymize %}
+  <p class="mt-2 text-sm text-muted">Ad, telefon, e-posta ve not kalıcı olarak silinir; sakin portalı erişimi kapanır. Tahakkuk ve tahsilat kayıtları bozulmaz; makbuzlardaki ödeyen adı yasal saklama gereği kalır. Geri alınamaz.</p>
+  <form method="post" action="{% url 'people:person_anonymize' site.pk person.pk %}" class="mt-4 space-y-3">{% csrf_token %}
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="confirm" value="1" class="size-4 rounded border-line accent-brand-600"> Geri alınamayacağını biliyorum</label>
+    <button class="btn-danger">Anonimleştir</button></form>
+  {% else %}<p class="mt-2 text-sm text-muted">Önce kişinin tüm bölüm ilişkilerini sonlandırın (bitiş tarihi bugünden önce olmalı).</p>{% endif %}
+</details>
+{% endif %}
 {% endblock %}
