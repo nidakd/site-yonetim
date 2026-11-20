@@ -4,8 +4,9 @@ Siteler, apartmanlar ve yönetim firmaları için aidat, tahsilat ve muhasebe pl
 Çok kiracılı (multi-tenant) SaaS olarak tasarlandı: her müşteri kuruluşun verisi hem uygulama
 hem veritabanı seviyesinde diğerlerinden ayrıdır.
 
-> Durum: **Faz 1 (çekirdek muhasebe) tamamlandı**. Yol haritası ve tasarım kararları:
-> [docs/URUN_PLANI.md](docs/URUN_PLANI.md), fazlar: [Faz 0](docs/faz-0.md) · [Faz 1](docs/faz-1.md).
+> Durum: **Faz 2 (kurulum ve sakin portalı) tamamlandı**. Yol haritası ve tasarım kararları:
+> [docs/URUN_PLANI.md](docs/URUN_PLANI.md), fazlar: [Faz 0](docs/faz-0.md) · [Faz 1](docs/faz-1.md) ·
+> [Faz 2](docs/faz-2.md).
 
 ## Teknoloji
 Django 5.2 LTS · PostgreSQL 16 (satır seviyesi güvenlik) · HTMX + Alpine.js · Tailwind CSS 4 ·
@@ -43,6 +44,12 @@ iki aylık aidat, tahsilat ve giderler):
 ```bash
 python manage.py seed_demo --org-name "Demo" --admin-email demo@example.test
 ```
+
+Gerçek bir siteyi kurmak için panelde site → **Kurulum** sekmesinden şablonu indirip doldurun
+(ya da eski aylık aidat çizelgenizi yükleyin); önizlemede kontrol edip onaylayın.
+
+Sakinler `/sakin/giris/` adresinden yönetimde kayıtlı cep telefonlarıyla SMS koduyla girer.
+Geliştirmede SMS gönderilmez, kod `runserver` çıktısına yazılır (`SMS_BACKEND`).
 
 Bağlantıyla şifre belirlenir, ilk girişte iki adımlı doğrulama kurulur (Google/Microsoft
 Authenticator vb.), sonra panel açılır. "Bu cihazı 30 gün hatırla" seçilirse o tarayıcıdan
@@ -84,7 +91,10 @@ apps/billing/      borç türü, özel aidat, tahakkuk sihirbazı (önizleme →
 apps/payments/     tahsilat, eşleştirme, avans, makbuz
 apps/expenses/     gider, tedarikçi, kasa/banka hesabı, virman
 apps/reports/      site özeti, bölüm ekstresi, borçlular
-domain/            Django'dan bağımsız saf para fonksiyonları (kuruş, dağıtım, eşleştirme)
+apps/imports/      Excel'den kurulum: şablon, aylık aidat çizelgesi, önizleme → onay
+apps/residents/    sakin girişi (telefon + SMS kodu), sakin portalı, portal gizlilik ayarları
+apps/comms/        SMS arayüzü, e-posta bildirimleri (makbuz, ekstre) ve kayıtları
+domain/            Django'dan bağımsız saf fonksiyonlar (kuruş, dağıtım, eşleştirme, telefon, Excel hücresi)
 templates/         arayüz (Tailwind bileşen sınıfları: static/src/app.css)
 tests/
 ```
