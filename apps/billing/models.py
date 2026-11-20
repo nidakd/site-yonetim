@@ -77,6 +77,7 @@ class ChargeBatch(TenantModel):
         EQUAL = "equal", "Toplamı eşit böl"
         SHARE = "share", "Toplamı arsa payına göre böl"
         AREA = "area", "Toplamı m²'ye göre böl"
+        OPENING = "opening", "Açılış bakiyesi"  # kurulumda devreden borçlar; sihirbazda seçilmez
 
     class Status(models.TextChoices):
         DRAFT = "draft", "Taslak"

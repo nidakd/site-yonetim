@@ -108,11 +108,16 @@ def site_summary(site, *, today: date | None = None) -> dict:
     month = today.replace(day=1)
     balances = account_balances(site)
     cash = [(a, balances.get(a.pk, 0)) for a in cash_accounts(site)]
-    accrued = Charge.objects.filter(site=site, period=month, is_cancelled=False).aggregate(s=Sum("amount"))["s"] or 0
+    accrued = (
+        Charge.objects.filter(site=site, period=month, is_cancelled=False)
+        .exclude(batch__method="opening")
+        .aggregate(s=Sum("amount"))["s"]
+        or 0
+    )
     collected = (
-        Payment.objects.filter(site=site, status=Payment.Status.VALID, date__gte=month, date__lte=today).aggregate(
-            s=Sum("amount")
-        )["s"]
+        Payment.objects.filter(site=site, status=Payment.Status.VALID, date__gte=month, date__lte=today)
+        .exclude(channel=Payment.Channel.OPENING)
+        .aggregate(s=Sum("amount"))["s"]
         or 0
     )
     unit_bal = unit_balances(site)

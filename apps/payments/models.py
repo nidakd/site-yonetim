@@ -17,6 +17,7 @@ class Payment(TenantModel):
         TRANSFER = "transfer", "Havale / EFT"
         CARD = "card", "Kredi kartı"
         OTHER = "other", "Diğer"
+        OPENING = "opening", "Açılış avansı"  # kurulumda devreden fazla ödeme; makbuzu yoktur
 
     class Status(models.TextChoices):
         VALID = "valid", "Geçerli"
@@ -32,8 +33,8 @@ class Payment(TenantModel):
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="+", verbose_name="kasa / banka")
     reference = models.CharField("dekont / referans", max_length=120, blank=True)
     note = models.CharField("not", max_length=255, blank=True)
-    receipt_year = models.PositiveSmallIntegerField()
-    receipt_number = models.PositiveIntegerField()
+    receipt_year = models.PositiveSmallIntegerField(null=True, blank=True)
+    receipt_number = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.VALID)
     entry = models.OneToOneField(JournalEntry, on_delete=models.PROTECT, related_name="+")
     cancel_entry = models.OneToOneField(JournalEntry, on_delete=models.PROTECT, null=True, blank=True, related_name="+")
@@ -51,10 +52,21 @@ class Payment(TenantModel):
         constraints = [
             models.CheckConstraint(condition=Q(amount__gt=0), name="payment_amount_positive"),
             models.UniqueConstraint(fields=["site", "receipt_year", "receipt_number"], name="payment_unique_receipt"),
+            # Açılış avansı dışındaki her tahsilatın makbuz numarası vardır.
+            models.CheckConstraint(
+                condition=Q(channel="opening") | Q(receipt_year__isnull=False, receipt_number__isnull=False),
+                name="payment_receipt_required",
+            ),
         ]
 
     @property
+    def is_opening(self) -> bool:
+        return self.channel == self.Channel.OPENING
+
+    @property
     def receipt_no(self) -> str:
+        if self.receipt_number is None:
+            return "Açılış"
         return f"{self.receipt_year}-{self.receipt_number:06d}"
 
     def __str__(self) -> str:

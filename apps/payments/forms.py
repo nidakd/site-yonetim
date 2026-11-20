@@ -13,7 +13,7 @@ class PaymentForm(forms.Form):
     unit = forms.ModelChoiceField(Unit.unscoped.none(), label="Bölüm")
     date = forms.DateField(label="Tarih", widget=DateInput())
     amount = MoneyField(label="Tutar")
-    channel = forms.ChoiceField(label="Ödeme şekli", choices=Payment.Channel.choices)
+    channel = forms.ChoiceField(label="Ödeme şekli", choices=[c for c in Payment.Channel.choices if c[0] != "opening"])
     account = forms.ModelChoiceField(None, label="Kasa / banka", empty_label=None)
     payer = forms.ModelChoiceField(Person.unscoped.none(), label="Ödeyen", required=False, empty_label="—")
     reference = forms.CharField(label="Dekont / referans", max_length=120, required=False)

@@ -87,7 +87,7 @@ class BatchForm(forms.ModelForm):
         self.fields["description"].required = False
         for name in ("block", "unit"):
             self.fields[name].required = False
-        self.fields["method"].choices = ChargeBatch.Method.choices
+        self.fields["method"].choices = [c for c in ChargeBatch.Method.choices if c[0] != ChargeBatch.Method.OPENING]
         self.fields["amount"].hide_optional = True
         self.fields["method"].widget.attrs["x-model"] = "method"
         self.fields["scope"].widget.attrs["x-model"] = "scope"

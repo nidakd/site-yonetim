@@ -97,7 +97,11 @@ def payment_detail(request, site, payment_id: int):
 
 @site_view("finance.view")
 def receipt(request, site, payment_id: int):
-    payment = get_object_or_404(Payment.objects.select_related("unit__block", "account"), pk=payment_id, site=site)
+    payment = get_object_or_404(
+        Payment.objects.select_related("unit__block", "account").exclude(channel=Payment.Channel.OPENING),
+        pk=payment_id,
+        site=site,
+    )
     allocations = payment.allocations.filter(from_advance=False).select_related("charge").order_by("charge__due_date")
     return render(
         request,

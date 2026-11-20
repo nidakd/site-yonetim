@@ -55,6 +55,11 @@ ACTIONS: dict[str, str] = {
     "expense.created": "Gider kaydedildi",
     "expense.cancelled": "Gider iptal edildi",
     "transfer.created": "Virman yapıldı",
+    "opening.debts": "Açılış borçları girildi",
+    "opening.advances": "Açılış avansları girildi",
+    "import.uploaded": "Excel dosyası yüklendi",
+    "import.applied": "Excel içe aktarması uygulandı",
+    "import.discarded": "Excel içe aktarmasından vazgeçildi",
 }
 
 

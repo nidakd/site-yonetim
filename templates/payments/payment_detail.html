@@ -1,9 +1,9 @@
 {% extends "layouts/site.html" %}
 {% load ui %}
-{% block title %}Makbuz {{ payment.receipt_no }}{% endblock %}
-{% block page_title %}Makbuz {{ payment.receipt_no }}{% if payment.status == 'cancelled' %} <span class="badge-gray align-middle">İptal</span>{% endif %}{% endblock %}
+{% block title %}{% if payment.is_opening %}Açılış avansı{% else %}Makbuz {{ payment.receipt_no }}{% endif %}{% endblock %}
+{% block page_title %}{% if payment.is_opening %}Açılış avansı{% else %}Makbuz {{ payment.receipt_no }}{% endif %}{% if payment.status == 'cancelled' %} <span class="badge-gray align-middle">İptal</span>{% endif %}{% endblock %}
 {% block page_subtitle %}{{ payment.unit.label }} · {{ payment.date|tr_date }} · {{ payment.get_channel_display }} · {{ payment.account.name }}{% endblock %}
-{% block page_actions %}<a class="btn-secondary" href="{% url 'payments:receipt' site.pk payment.pk %}" target="_blank">Makbuzu yazdır</a>
+{% block page_actions %}{% if not payment.is_opening %}<a class="btn-secondary" href="{% url 'payments:receipt' site.pk payment.pk %}" target="_blank">Makbuzu yazdır</a>{% endif %}
 <a class="btn-ghost" href="{% url 'property:unit_detail' site.pk payment.unit_id %}">Bölüme git</a>{% endblock %}
 {% block content %}
 <div class="grid gap-4 sm:grid-cols-3">
