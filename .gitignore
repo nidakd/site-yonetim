@@ -27,3 +27,6 @@ data/
 *.dump
 
 .DS_Store
+
+# Belgeler yalnızca yerelde tutulur
+docs/

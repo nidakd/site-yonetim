@@ -4,9 +4,8 @@ Siteler, apartmanlar ve yönetim firmaları için aidat, tahsilat ve muhasebe pl
 Çok kiracılı (multi-tenant) SaaS olarak tasarlandı: her müşteri kuruluşun verisi hem uygulama
 hem veritabanı seviyesinde diğerlerinden ayrıdır.
 
-> Durum: **Faz 2 (kurulum ve sakin portalı) tamamlandı**. Yol haritası ve tasarım kararları:
-> [docs/URUN_PLANI.md](docs/URUN_PLANI.md), fazlar: [Faz 0](docs/faz-0.md) · [Faz 1](docs/faz-1.md) ·
-> [Faz 2](docs/faz-2.md).
+> Durum: **Faz 2 (kurulum ve sakin portalı) tamamlandı**. Ürün planı, faz belgeleri ve tasarım
+> notları `docs/` klasöründe yerel olarak tutulur; depoya dahil değildir.
 
 ## Teknoloji
 Django 5.2 LTS · PostgreSQL 16 (satır seviyesi güvenlik) · HTMX + Alpine.js · Tailwind CSS 4 ·
