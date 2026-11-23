@@ -11,15 +11,18 @@ from django.utils import timezone
 from apps.audit.services import record
 from apps.tenancy.permissions import has_perm, site_view
 
-from . import grid, setup
+from . import grid, ledger_grid, setup
 from .forms import UploadForm
 from .models import ImportJob
 from .xlsx import SheetError
 
-MODULES = {ImportJob.Kind.SETUP: setup, ImportJob.Kind.GRID: grid}
+MODULES = {ImportJob.Kind.SETUP: setup, ImportJob.Kind.GRID: grid, ImportJob.Kind.LEDGER: ledger_grid}
 
 
 def _parse(kind: str, data: bytes, options: dict):
+    if kind == ImportJob.Kind.LEDGER:
+        options["lock"] = False  # geçmiş aylar tek tek yazılır; kilit gerekirse sonra Muhasebe ayarlarından
+        return ledger_grid.parse(data, options)
     if kind == ImportJob.Kind.GRID:
         payload, issues = grid.parse(data, options)
         if not options.get("opening_date"):
@@ -88,6 +91,12 @@ def job_detail(request, site, job_id: int):
                 "duplicate": ImportJob.objects.filter(
                     site=site, file_sha256=job.file_sha256, status=ImportJob.Status.APPLIED
                 ).first(),
+                "ledger_totals": {
+                    "charged": sum(r.charged for r in getattr(p, "ledger_rows", [])),
+                    "paid": sum(r.paid for r in getattr(p, "ledger_rows", [])),
+                    "opening": sum(r.opening for r in getattr(p, "ledger_rows", [])),
+                    "balance": sum(r.balance for r in getattr(p, "ledger_rows", [])),
+                },
                 "grid_totals": {
                     "expected": sum(r.expected for r in p.grid_rows),
                     "paid": sum(r.paid for r in p.grid_rows),

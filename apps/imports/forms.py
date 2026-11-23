@@ -28,6 +28,18 @@ class UploadForm(forms.Form):
     first_month = MonthField(
         label="İlk ay sütunu", required=False, help_text="Ay başlıklarında yıl yoksa (yalnızca 'Ocak') gerekli."
     )
+    sheet_name = forms.CharField(
+        label="Sayfa adı", max_length=60, required=False, help_text="Dosyada birden çok sayfa varsa (ör. aidat 2026)."
+    )
+    charge_type = forms.ChoiceField(
+        label="Borç türü",
+        choices=[("Aidat", "Aidat"), ("Yakıt", "Yakıt"), ("Özel toplama", "Özel toplama"), ("Diğer", "Diğer")],
+        initial="Aidat",
+        required=False,
+    )
+    create_people = forms.BooleanField(
+        label="Yeni dairelere AD/SOYAD sütunundaki kişiyi sorumlu olarak ekle", required=False, initial=True
+    )
     monthly_fee = MoneyField(
         label="Aylık aidat",
         required=False,
@@ -37,7 +49,14 @@ class UploadForm(forms.Form):
     def __init__(self, *args, **kwargs):
         today = timezone.localdate()
         kwargs.setdefault("initial", {}).update(
-            {"kind": ImportJob.Kind.SETUP, "start_date": today.replace(day=1), "lock": True, "unit_column": "Daire No"}
+            {
+                "kind": ImportJob.Kind.SETUP,
+                "start_date": today.replace(day=1),
+                "lock": True,
+                "unit_column": "Daire No",
+                "charge_type": "Aidat",
+                "create_people": True,
+            }
         )
         super().__init__(*args, **kwargs)
         self.fields["kind"].widget.attrs["x-model"] = "kind"
@@ -62,4 +81,7 @@ class UploadForm(forms.Form):
             "unit_column": (d.get("unit_column") or "").strip() or "Daire No",
             "first_month": d["first_month"].isoformat() if d.get("first_month") else None,
             "monthly_fee": d.get("monthly_fee"),
+            "sheet_name": (d.get("sheet_name") or "").strip(),
+            "charge_type": d.get("charge_type") or "Aidat",
+            "create_people": bool(d.get("create_people")),
         }

@@ -15,7 +15,14 @@
   <div class="alert-warning mb-4">Bu dosyadan vazgeçildi; hiçbir kayıt değişmedi.</div>
 {% endif %}
 
-{% if summary %}
+{% if summary and job.kind == 'ledger' %}
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="card card-body"><p class="stat-label">Daire</p><p class="stat-value">{{ summary.daire }}</p><p class="text-xs text-muted">{{ summary.yeni_bolum }} yeni daire · {{ summary.yeni_blok }} yeni blok{% if summary.muaf_daire %} · {{ summary.muaf_daire }} muaf{% endif %}</p></div>
+  <div class="card card-body"><p class="stat-label">Borçlandırılan</p><p class="stat-value">{{ summary.borclandirilan|tl }}</p><p class="text-xs text-muted">{{ summary.ay }} ay · {{ summary.borc_kalemi }} kalem{% if summary.acilis_borc_toplam %} · geçmiş borç {{ summary.acilis_borc_toplam|tl }}{% endif %}</p></div>
+  <div class="card card-body"><p class="stat-label">Tahsilat</p><p class="stat-value">{{ summary.tahsilat_toplam|tl }}</p><p class="text-xs text-muted">{{ summary.tahsilat_adedi }} ödeme</p></div>
+  <div class="card card-body"><p class="stat-label">Kalan borç</p><p class="stat-value">{{ summary.kalan|tl }}</p></div>
+</div>
+{% elif summary %}
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
   {% if job.kind == 'setup' %}
   <div class="card card-body"><p class="stat-label">Yeni bölüm</p><p class="stat-value">{{ summary.yeni_bolum }}</p><p class="text-xs text-muted">{{ summary.yeni_blok }} yeni blok · {{ summary.yeni_tip }} yeni tip{% if summary.mevcut_bolum %} · {{ summary.mevcut_bolum }} zaten kayıtlı{% endif %}</p></div>
@@ -50,7 +57,24 @@
 </section>
 {% endif %}
 
-{% if plan and job.kind == 'grid' and plan.grid_rows %}
+{% if plan and job.kind == 'ledger' and plan.ledger_rows %}
+<section class="card mt-6 overflow-x-auto">
+  <h2 class="border-b border-line px-5 py-3 font-semibold">Daire daire sonuç</h2>
+  <table class="data-table">
+    <thead><tr><th>Satır</th><th>Daire</th><th>Kişi</th><th class="num">Geçmiş borç</th><th class="num">Borçlandırılan</th><th class="num">Ödenen</th><th class="num">Kalan</th><th class="num">Çizelgede</th></tr></thead>
+    <tbody>
+    {% for r in plan.ledger_rows %}
+      <tr><td>{{ r.row }}</td><td class="font-medium">{{ r.label }}{% if not r.unit_exists %} <span class="badge-blue">yeni</span>{% endif %}{% if r.exempt_months %} <span class="badge-gray">{{ r.exempt_months }} ay muaf</span>{% endif %}</td><td>{{ r.person|default:"—" }}</td>
+        <td class="num">{% if r.opening %}{{ r.opening|tl }}{% endif %}</td><td class="num">{{ r.charged|tl }}</td><td class="num">{{ r.paid|tl }}</td>
+        <td class="num {% if r.balance > 0 %}font-semibold text-red-700{% endif %}">{{ r.balance|tl }}</td>
+        <td class="num {% if r.sheet_balance is not None and r.sheet_balance != r.balance %}text-amber-700 font-semibold{% endif %}">{% if r.sheet_balance is not None %}{{ r.sheet_balance|tl }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr class="font-semibold"><td colspan="3">Toplam</td><td class="num">{{ ledger_totals.opening|tl }}</td><td class="num">{{ ledger_totals.charged|tl }}</td><td class="num">{{ ledger_totals.paid|tl }}</td><td class="num">{{ ledger_totals.balance|tl }}</td><td></td></tr></tfoot>
+  </table>
+  <p class="px-5 py-3 text-xs text-muted">"Çizelgede": son doldurulmuş hücredeki biriken borç (sabit aidatlı çizelgelerde). Hesaplanandan farklıysa sarı görünür.</p>
+</section>
+{% elif plan and job.kind == 'grid' and plan.grid_rows %}
 <section class="card mt-6 overflow-x-auto">
   <h2 class="border-b border-line px-5 py-3 font-semibold">Çizelgeden çıkan bakiyeler</h2>
   <table class="data-table">

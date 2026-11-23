@@ -11,27 +11,35 @@
       {% include "components/form_errors.html" %}
       <fieldset>
         <legend class="label">{{ form.kind.label }}</legend>
-        <div class="mt-1 grid gap-3 sm:grid-cols-2">
+        <div class="mt-1 grid gap-3 sm:grid-cols-3">
           {% for choice in form.kind %}
           <label class="flex cursor-pointer gap-3 rounded-lg border border-line p-3 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
             {{ choice.tag }}
             <span><span class="block font-medium">{{ choice.choice_label }}</span>
-              <span class="block text-xs text-muted">{% if choice.data.value == 'setup' %}Bloklar, bölümler, malik/kiracılar ve açılış bakiyeleri (bu sitenin şablonu).{% else %}Eski Excel takibiniz: satırlarda daireler, sütunlarda aylar, hücrelerde ödenen tutar. Açılış bakiyesi çıkarılır.{% endif %}</span></span>
+              <span class="block text-xs text-muted">{% if choice.data.value == 'setup' %}Bloklar, bölümler, malik/kiracılar ve açılış bakiyeleri (bu sitenin şablonu).{% elif choice.data.value == 'grid' %}Satırlarda daireler, sütunlarda aylar, hücrelerde ödenen tutar. Açılış bakiyesi çıkarılır.{% else %}BLOK, DAIRE, AD, SOYAD ve ay sütunları; hücrede ödeme tarihi, "muaf", biriken borç ya da tutar/tarih. Geçmiş borçlar ve ödemeler aktarılır.{% endif %}</span></span>
           </label>
           {% endfor %}
         </div>
       </fieldset>
       {% include "components/field.html" with field=form.file %}
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div x-show="kind === 'ledger'" x-cloak class="space-y-4 rounded-lg bg-canvas p-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          {% include "components/field.html" with field=form.sheet_name %}
+          {% include "components/field.html" with field=form.charge_type %}
+        </div>
+        <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ form.create_people.html_name }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.create_people.value %} checked{% endif %}> <span>{{ form.create_people.label }}</span></label>
+        <p class="help">Hücre kuralları: tarih = o ayın aidatı o tarihte ödendi ("e" eki = elden/nakit, eksiz = banka) · sayı = ödenmedi (biriken borç) · "muaf" = borç yok · "300/28.03.2026" = o tarihte 300 TL ödeme. Geçmiş tahsilatlar ayrı "Geçmiş tahsilatlar (Excel aktarımı)" kasasına yazılır; gerçek Kasa/Banka bakiyeniz bozulmaz.</p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2" x-show="kind !== 'ledger'">
         {% include "components/field.html" with field=form.opening_date %}
         <div x-show="kind === 'setup'">{% include "components/field.html" with field=form.start_date %}</div>
       </div>
-      <div x-show="kind === 'grid'" x-cloak class="grid gap-4 sm:grid-cols-3">
-        {% include "components/field.html" with field=form.unit_column %}
+      <div x-show="kind === 'grid'" x-cloak>{% include "components/field.html" with field=form.unit_column %}</div>
+      <div x-show="kind !== 'setup'" x-cloak class="grid gap-4 sm:grid-cols-2">
         {% include "components/field.html" with field=form.first_month %}
-        {% include "components/field.html" with field=form.monthly_fee %}
+        <div>{% include "components/field.html" with field=form.monthly_fee %}<p class="help" x-show="kind === 'ledger'">Aidat çizelgesinde aylık aidatı yazın (ör. 800). Yakıt gibi daireye göre değişen tutarlarda boş bırakın.</p></div>
       </div>
-      <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ form.lock.html_name }}" id="{{ form.lock.id_for_label }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.lock.value %} checked{% endif %}>
+      <label x-show="kind !== 'ledger'" class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ form.lock.html_name }}" id="{{ form.lock.id_for_label }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.lock.value %} checked{% endif %}>
         <span>{{ form.lock.label }}<span class="block text-xs text-muted">Devreden bakiyelerin sonradan yanlışlıkla değişmesini önler (muhasebe yetkisi gerekir). Birden çok dosya yükleyecekseniz yalnızca sonuncuda işaretleyin.</span></span></label>
     </div>
     <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6"><button class="btn-primary">Yükle ve önizle</button></div>

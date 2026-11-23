@@ -13,6 +13,7 @@ class ImportJob(TenantModel):
     class Kind(models.TextChoices):
         SETUP = "setup", "Kurulum şablonu"
         GRID = "grid", "Aylık aidat çizelgesi"
+        LEDGER = "ledger", "Tarihli aidat/yakıt çizelgesi"
 
     class Status(models.TextChoices):
         PREVIEW = "preview", "Önizleme"

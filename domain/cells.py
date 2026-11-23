@@ -90,11 +90,20 @@ def norm(text: object) -> str:
     return " ".join(tr_lower(str(text or "")).replace("*", " ").replace(":", " ").split())
 
 
+_FOLD = str.maketrans("ıiçğöşüâîû", "iicgosuaiu")
+
+
+def fold(text: object) -> str:
+    """Türkçe harflerden bağımsız karşılaştırma: 'DAIRE', 'Daire', 'DAİRE' → 'daire'; 'ŞUBAT', 'SUBAT' → 'subat'."""
+    return norm(text).translate(_FOLD)
+
+
 def month_index(name: str) -> int | None:
-    """'Eylül', 'eyl', 'EYLÜL' → 9. Tanınmazsa None."""
-    s = norm(name)
+    """'Eylül', 'eyl', 'EYLÜL', 'EYLUL' → 9. Tanınmazsa None."""
+    s = fold(name)
     for i, month in enumerate(MONTHS_TR, start=1):
-        if s == month or (len(s) >= 3 and month.startswith(s)):
+        m = month.translate(_FOLD)
+        if s == m or (len(s) >= 3 and m.startswith(s)):
             return i
     return None
 

@@ -650,3 +650,140 @@ def test_opening_advance_has_no_printable_receipt(client, admin_a, org_a, site_a
     assert client.get(reverse("payments:receipt", args=[site_a.pk, payment.pk])).status_code == 404
     page = client.get(reverse("payments:payment_detail", args=[site_a.pk, payment.pk])).content.decode()
     assert "Açılış avansı" in page and "Makbuzu yazdır" not in page
+
+
+# --- tarihli aidat/yakıt çizelgesi (sentetik; gerçek dosyanın biçimini taklit eder) -----------
+
+from datetime import datetime as _dt  # noqa: E402
+
+from apps.imports import ledger_grid  # noqa: E402
+from apps.ledger.models import Account as _Account  # noqa: E402
+
+
+def ledger_file():
+    head = ["S", "BLOK", "DAIRE", "AD", "SOYAD", "GEÇMİŞ BORÇ", "OCAK", "SUBAT", "MART", "NİSAN"]
+    rows = [
+        [1, "KT1", 1, "Deniz", "Örnek", None, _dt(2026, 1, 5), "12.02.2026e", "300/20.03.2026", 1300],
+        [2, "KT1", 2, "Ekin", "Deneme", 1000, 800, 1600, 2400, 3200],
+        [3, "KT1", 3, "Yönetici", "Kişi", None, "muaf", "muaf", "muaf", "muaf"],
+        [4, "KT2", 1, "Ece", "Sentetik", None, _dt(2026, 1, 3), "2400/3.04.26", None, None],
+    ]
+    return xlsx({"aidat 2026": [["SENTETİK AİDAT ÇİZELGESİ"], head, *rows], "başka": [["x"]]})
+
+
+LEDGER_OPTS = {"sheet_name": "aidat 2026", "first_month": "2026-01-01", "monthly_fee": 80000, "charge_type": "Aidat"}
+
+
+def test_classify_cells():
+    c = ledger_grid.classify
+    assert c(_dt(2026, 1, 5)).kind == "paid"
+    assert (c("26.05.2026e").kind, c("26.05.2026e").cash) == ("paid", True)
+    assert c("22.10..26").day == date(2026, 10, 22)
+    assert (c("300/28.03.2026").kind, c("300/28.03.2026").amount) == ("partial", 30000)
+    assert c("1489/25.10.26").amount == 148900
+    assert c("446,5/29.10.25").amount == 44650
+    assert (c(1600).kind, c(1600).amount) == ("unpaid", 160000)
+    assert c("7400-1600 =5.800").amount == 580000
+    assert (c("200artıda").kind, c("657-30=627 artıda").amount) == ("credit", 62700)
+    assert c("MUAF").kind == "exempt"
+    assert c(None).kind == "empty"
+    assert c("ödedi galiba").kind == "unknown"
+
+
+def test_ledger_needs_sheet_and_first_month():
+    with pytest.raises(SheetError, match="birden çok sayfa"):
+        ledger_grid.parse(ledger_file(), {"first_month": "2026-01-01"})
+    with pytest.raises(SheetError, match="İlk ay"):
+        ledger_grid.parse(ledger_file(), {"sheet_name": "aidat 2026"})
+    with pytest.raises(SheetError, match="ardışık"):
+        ledger_grid.parse(ledger_file(), {**LEDGER_OPTS, "first_month": "2026-02-01"})
+
+
+@pytest.mark.django_db
+def test_ledger_fixed_fee_import(site):
+    payload, issues = ledger_grid.parse(ledger_file(), LEDGER_OPTS)
+    assert not issues.has_errors, issues.as_list()
+    p = ledger_grid.plan(site, payload, LEDGER_OPTS)
+    assert not p.issues.has_errors, p.issues.as_list()
+    rows = {r.label: r for r in p.ledger_rows}
+    assert rows["KT1 · 1"].balance == 130000  # Mart'ta 300 ödendi (500 kaldı) + Nisan 800 ödenmedi
+    assert rows["KT1 · 1"].sheet_balance == 130000
+    assert rows["KT1 · 2"].balance == 420000 and rows["KT1 · 2"].opening == 100000
+    assert rows["KT2 · 1"].balance == -160000  # boş aylar borçlandırılmaz; 2400'ün fazlası avans olur
+    assert p.summary["muaf_daire"] == 1
+
+    ledger_grid.apply(site, payload, {**LEDGER_OPTS, "create_people": True}, None)
+    balances = unit_balances(site)
+    units = {f"{u.block.name} {u.number}": u for u in Unit.objects.filter(site=site).select_related("block")}
+    assert len(units) == 4 and Block.objects.filter(site=site).count() == 2
+    assert balances[units["KT1 1"].pk] == 130000 and balances[units["KT1 2"].pk] == 420000
+    assert balances[units["KT2 1"].pk] == -160000  # avans; sonraki aidatlara mahsup edilir
+    assert units["KT1 3"].pk not in balances  # muaf: borç yok
+    assert DuesAgreement.objects.get(unit=units["KT1 3"]).kind == "exempt"
+    assert Occupancy.objects.get(unit=units["KT1 1"]).person.full_name == "Deniz Örnek"
+    cash_payment = Payment.objects.get(unit=units["KT1 1"], date=date(2026, 2, 12))
+    assert cash_payment.channel == "cash" and cash_payment.account.code == "100.90"
+    assert Payment.objects.get(unit=units["KT1 1"], date=date(2026, 1, 5)).channel == "transfer"
+    # gerçek Kasa/Banka etkilenmez
+    assert ledger.balance(_Account.objects.get(site=site, code="100")) == 0
+    check_consistency(site)
+    # aynı çizelge iki kez aktarılamaz
+    p2 = ledger_grid.plan(site, payload, LEDGER_OPTS)
+    assert any("zaten borçlandırılmış" in i.message for i in p2.issues.items)
+
+
+@pytest.mark.django_db
+def test_ledger_amount_sheet_with_credit(site):
+    head = ["S", "BLOK NO", "DAIRE NO", "AD ", "SOYAD", "ESKİ BORÇ", "EKİM ", "KASIM"]
+    rows = [
+        [1, "KT1", 1, "Deniz", "Örnek", "200artıda", "1489/25.10.26", 1841],
+        [2, "KT1", 2, "Ekin", "Deneme", 500, 2041, "1850/17.11.26"],
+    ]
+    data = xlsx({"yakıt": [["SENTETİK YAKIT"], head, *rows]})
+    opts = {"first_month": "2026-10-01", "monthly_fee": None, "charge_type": "Yakıt"}
+    payload, issues = ledger_grid.parse(data, opts)
+    assert not issues.has_errors, issues.as_list()
+    ledger_grid.apply(site, payload, opts, None)
+    units = {u.number: u for u in Unit.objects.filter(site=site)}
+    balances = unit_balances(site)
+    assert balances[units["1"].pk] == 184100 - 20000  # Kasım borcu − avans
+    assert balances[units["2"].pk] == 50000 + 204100  # eski borç + Ekim
+    check_consistency(site)
+
+
+@pytest.mark.django_db
+def test_ledger_reports_bad_cells(site):
+    head = ["S", "BLOK", "DAIRE", "AD", "SOYAD", "OCAK"]
+    data = xlsx({"a": [head, [1, "KT1", 1, "A", "B", "ödedi galiba"], [2, "KT1", 2, "C", "D", "1.1.2099"]]})
+    payload, issues = ledger_grid.parse(data, {"first_month": "2026-01-01", "monthly_fee": 80000})
+    messages = " ".join(i.message for i in issues.items)
+    assert "okunamadı" in messages and "ileri bir tarih" in messages
+
+
+@pytest.mark.django_db
+def test_ledger_upload_flow(client, admin_a, org_a, site_a):
+    with tenant_context(org_a.pk):
+        billing.setup_site(site_a)
+    panel_client(client, admin_a, org_a)
+    response = upload(
+        client,
+        site_a,
+        b"",
+        kind="ledger",
+        sheet_name="aidat 2026",
+        first_month="2026-01",
+        monthly_fee="800",
+        charge_type="Aidat",
+        create_people="on",
+        file=SimpleUploadedFile("cizelge.xlsx", ledger_file()),
+    )
+    assert response.status_code == 302, response.content.decode()[:500]
+    page = client.get(response.url).content.decode()
+    assert "Daire daire sonuç" in page and "KT1 · 2" in page
+    with tenant_context(org_a.pk):
+        job = ImportJob.objects.get()
+    client.post(reverse("imports:job_apply", args=[site_a.pk, job.pk]))
+    with tenant_context(org_a.pk):
+        job.refresh_from_db()
+        assert job.status == "applied" and job.payload == {}
+        assert Unit.objects.filter(site=site_a).count() == 4
