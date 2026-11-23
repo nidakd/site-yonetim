@@ -163,3 +163,18 @@ def site_menu(context):
         if visible:
             groups.append({"title": title, "items": visible})
     return groups
+
+
+@register.simple_tag
+def static_v(path: str) -> str:
+    """Statik dosya adresi + değişince değişen sürüm (?v=…); tarayıcı eski CSS'i önbellekten kullanmasın."""
+    import os
+
+    from django.contrib.staticfiles import finders
+    from django.templatetags.static import static
+
+    url = static(path)
+    found = finders.find(path)
+    if not found:
+        return url
+    return f"{url}?v={int(os.stat(found).st_mtime)}"
