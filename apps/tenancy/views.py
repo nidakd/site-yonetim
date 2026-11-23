@@ -55,8 +55,55 @@ def site_detail(request, site_id: int):
             "site": site,
             "can_edit": has_perm(request, "site.update", site.pk),
             "summary": site_summary(site) if finance else None,
+            "setup_steps": _setup_steps(request, site),
         },
     )
+
+
+def _setup_steps(request, site) -> list[dict] | None:
+    """Yeni site için ilk adımlar kartı; ilk tahakkuk yapılınca gizlenir."""
+    from django.urls import reverse
+
+    from apps.billing.models import ChargeBatch
+    from apps.people.models import Occupancy
+    from apps.property.models import Block, Unit
+
+    if not has_perm(request, "property.manage", site.pk):
+        return None
+    if ChargeBatch.objects.filter(site=site, status=ChargeBatch.Status.APPROVED).exists():
+        return None
+    has_units = Unit.objects.filter(site=site).exists()
+    bill = has_perm(request, "billing.manage", site.pk)
+    return [
+        {
+            "title": "Blokları ekleyin",
+            "text": "Blok adı, daire ve kat sayısı; daireler birlikte açılır.",
+            "done": Block.objects.filter(site=site).exists() or has_units,
+            "url": reverse("property:block_list", args=[site.pk]),
+            "action": "Blok ekle",
+        },
+        {
+            "title": "Daireleri tamamlayın",
+            "text": "Tip, aidat, m² ve arsa payı.",
+            "done": has_units,
+            "url": reverse("property:unit_create", args=[site.pk]),
+            "action": "Daire ekle",
+        },
+        {
+            "title": "Malik ve kiracılar",
+            "text": "Telefonla sakinler kendi borcunu görür.",
+            "done": Occupancy.objects.filter(unit__site=site).exists(),
+            "url": reverse("people:person_create", args=[site.pk]),
+            "action": "Kişi ekle",
+        },
+        {
+            "title": "İlk borçlandırma",
+            "text": "Ayın aidatını önizleyip onaylayın.",
+            "done": False,
+            "url": reverse("billing:batch_create", args=[site.pk]) if bill and has_units else None,
+            "action": "Borçlandır",
+        },
+    ]
 
 
 @panel_view("site.update")
@@ -73,7 +120,7 @@ def site_update(request, site_id: int):
             record("site.updated", site, changed, site_id=site.pk)
         messages.success(request, "Site bilgileri güncellendi.")
         return redirect("tenancy:site_detail", site_id=site.pk)
-    return render(request, "tenancy/site_form.html", {"form": form, "title": f"{site.name} · düzenle"})
+    return render(request, "tenancy/site_form.html", {"site": site, "form": form, "title": f"{site.name} · düzenle"})
 
 
 def switch_organization(request, org_id: int):

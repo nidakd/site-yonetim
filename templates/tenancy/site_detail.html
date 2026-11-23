@@ -9,6 +9,22 @@
 {% if bill %}<a class="btn-secondary" href="{% url 'billing:batch_create' site.pk %}">Borçlandır</a>{% endif %}
 {% if can_edit %}<a class="btn-ghost" href="{% url 'tenancy:site_update' site.pk %}">Site bilgileri</a>{% endif %}{% endblock %}
 {% block content %}
+{% if setup_steps %}
+<section class="card card-body mb-6">
+  <h2 class="section-title">Siteyi kurmaya başlayın</h2>
+  <p class="text-sm text-muted">Dört adımda hazır. İsterseniz hepsini tek Excel dosyasıyla da yapabilirsiniz: <a class="text-brand-700 hover:underline" href="{% url 'imports:setup_home' site.pk %}">Excel'den kurulum</a>.</p>
+  <ol class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    {% for step in setup_steps %}
+    <li class="rounded-lg border p-4 {% if step.done %}border-emerald-200 bg-emerald-50{% else %}border-line{% endif %}">
+      <p class="text-xs font-semibold text-muted">{{ forloop.counter }}. adım {% if step.done %}· tamam{% endif %}</p>
+      <p class="mt-1 font-semibold">{{ step.title }}</p>
+      <p class="mt-1 text-xs text-muted">{{ step.text }}</p>
+      {% if not step.done and step.url %}<a class="btn-secondary mt-3" href="{{ step.url }}">{{ step.action }}</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
 {% if summary %}
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
   <div class="card card-body"><p class="stat-label">Bağımsız bölüm</p><p class="stat-value">{{ summary.unit_count }}</p></div>

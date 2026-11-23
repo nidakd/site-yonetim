@@ -1,6 +1,7 @@
 from django import forms
 
 from apps.core.forms import DateInput
+from apps.property.models import Unit
 from domain.phone import is_valid_phone, normalize_phone
 
 from .models import Occupancy, Person
@@ -52,3 +53,22 @@ class OccupancyForm(forms.ModelForm):
                 self.add_error("phone", "Telefonu 05xx xxx xx xx biçiminde girin.")
             data["phone"] = phone
         return data
+
+
+class PersonCreateForm(PersonForm):
+    """Yeni kişi; isteğe bağlı olarak bir daireye malik/kiracı olarak bağlanır."""
+
+    unit = forms.ModelChoiceField(
+        Unit.unscoped.none(), label="Daire", required=False, empty_label="— Şimdilik bağlama —"
+    )
+    relation = forms.ChoiceField(label="İlişki", choices=Occupancy.Relation.choices, initial="owner")
+    start_date = forms.DateField(label="Başlangıç", required=False, widget=DateInput())
+    is_liable = forms.BooleanField(label="Borç sorumlusu", required=False, initial=True)
+
+    class Meta(PersonForm.Meta):
+        pass
+
+    def __init__(self, *args, site, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["unit"].queryset = Unit.objects.filter(site=site, is_archived=False).select_related("block")
+        self.fields["start_date"].hide_optional = True

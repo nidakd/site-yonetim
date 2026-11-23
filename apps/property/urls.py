@@ -11,6 +11,7 @@ urlpatterns = [
     path("bolumler/<int:unit_id>/", views.unit_detail, name="unit_detail"),
     path("bolumler/<int:unit_id>/duzenle/", views.unit_update, name="unit_update"),
     path("bolumler/<int:unit_id>/arsiv/", views.unit_archive, name="unit_archive"),
+    path("bloklar/", views.block_list, name="block_list"),
     path("yapi/", views.structure, name="structure"),
     path("yapi/blok/<int:block_id>/", views.block_update, name="block_update"),
     path("yapi/tip/<int:type_id>/", views.unit_type_update, name="unit_type_update"),

@@ -1,7 +1,8 @@
 {% extends "layouts/site.html" %}
 {% block title %}Kişiler · {{ site.name }}{% endblock %}
 {% block page_title %}Kişiler{% endblock %}
-{% block page_subtitle %}Sitedeki malik, kiracı ve oturanlar. Kişi eklemek için bölüm sayfasını kullanın.{% endblock %}
+{% block page_subtitle %}Sitedeki malik, kiracı ve oturanlar.{% endblock %}
+{% block page_actions %}{% load ui %}{% site_can 'people.manage' as pm %}{% if pm %}<a class="btn-primary" href="{% url 'people:person_create' site.pk %}">{% include "components/icon.html" with name="plus" cls="h-4 w-4" %} Yeni kişi</a>{% endif %}{% endblock %}
 {% block content %}
 <form method="get" class="mb-4 flex flex-wrap items-end gap-2">
   <div class="grow sm:grow-0"><label class="label" for="q">Ara</label><input class="input" id="q" name="q" value="{{ q }}" placeholder="Ad, soyad ya da telefon"></div>
@@ -15,8 +16,8 @@
     {% for r in rows %}
       <tr><td class="font-medium"><a class="text-brand-700 hover:underline" href="{% url 'people:person_detail' site.pk r.person.pk %}">{{ r.person.full_name }}</a></td>
         <td>{% if r.person.phone %}<a href="tel:{{ r.person.phone }}">{{ r.person.phone }}</a>{% else %}—{% endif %}</td>
-        <td>{% for o in r.current %}<span class="block">{{ o.unit.label }} <span class="text-xs text-muted">{{ o.get_relation_display }}</span></span>{% empty %}<span class="text-muted">Ayrıldı</span>{% endfor %}</td></tr>
-    {% empty %}<tr><td colspan="3" class="py-10 text-center text-muted">Kişi yok.</td></tr>{% endfor %}
+        <td>{% for o in r.current %}<span class="block">{{ o.unit.label }} <span class="text-xs text-muted">{{ o.get_relation_display }}</span></span>{% empty %}<span class="text-muted">{% if r.past %}Ayrıldı{% else %}Daireye bağlı değil{% endif %}</span>{% endfor %}</td></tr>
+    {% empty %}<tr><td colspan="3" class="py-10 text-center text-muted">Henüz kişi yok. <a class="text-brand-700 hover:underline" href="{% url 'people:person_create' site.pk %}">Yeni kişi ekleyin</a> ya da daire eklerken malik/kiracıyı girin.</td></tr>{% endfor %}
     </tbody>
   </table>
 </div>

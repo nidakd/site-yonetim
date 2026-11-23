@@ -1,0 +1,55 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Bloklar · {{ site.name }}{% endblock %}
+{% block page_title %}Bloklar{% endblock %}
+{% block page_subtitle %}{{ blocks|length }} blok{% endblock %}
+{% block page_actions %}{% if can_manage %}<button type="button" class="btn-primary" onclick="document.getElementById('blok-ekle').open = true; document.getElementById('id_blok-name').focus()">{% include "components/icon.html" with name="plus" cls="h-4 w-4" %} Blok ekle</button>{% endif %}{% endblock %}
+{% block content %}
+{% if can_manage %}
+<details id="blok-ekle" class="card mb-6" {% if open_form %}open{% endif %}>
+  <summary class="cursor-pointer px-5 py-3 font-semibold">Yeni blok</summary>
+  <form method="post" class="border-t border-line" novalidate>{% csrf_token %}
+    <div class="card-body space-y-4">
+      {% include "components/form_errors.html" %}
+      <div class="grid gap-4 sm:grid-cols-3">
+        {% include "components/field.html" with field=form.name %}
+        {% include "components/field.html" with field=form.unit_count %}
+        {% include "components/field.html" with field=form.floors %}
+      </div>
+      <div class="grid gap-4 sm:grid-cols-3">
+        {% include "components/field.html" with field=form.first_number %}
+        {% include "components/field.html" with field=form.unit_type %}
+      </div>
+      <p class="help">Örnek: "A Blok", 16 daire, 4 kat → daireler 1–16 numarasıyla, her katta 4 daire olarak açılır. Malik/kiracıyı sonra daire sayfasından ya da <a class="text-brand-700 hover:underline" href="{% url 'imports:setup_home' site.pk %}">Excel'den</a> ekleyebilirsiniz.</p>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-line px-5 py-4 sm:px-6"><button class="btn-primary">Bloğu kaydet</button></div>
+  </form>
+</details>
+{% endif %}
+
+{% if blocks %}
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  {% for c in blocks %}
+  <article class="card card-body">
+    <div class="flex items-center gap-3">
+      <span class="grid size-10 place-items-center rounded-lg bg-brand-50 text-brand-700">{% include "components/icon.html" with name="block" %}</span>
+      <h2 class="text-lg font-semibold">{% if c.block %}{{ c.block.name }}{% else %}Bloksuz bölümler{% endif %}</h2>
+    </div>
+    <dl class="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-canvas p-3 text-sm">
+      <div><dt class="text-xs text-muted">Daire</dt><dd class="text-xl font-bold">{{ c.units }}</dd></div>
+      {% if show_money %}<div><dt class="text-xs text-muted">Borçlu daire</dt><dd class="text-xl font-bold {% if c.debtors %}text-red-700{% endif %}">{{ c.debtors }}</dd></div>
+      <div class="col-span-2"><dt class="text-xs text-muted">Toplam borç</dt><dd class="font-semibold">{{ c.debt|tl }}</dd></div>{% endif %}
+    </dl>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <a class="btn-secondary grow justify-center" href="{% url 'property:unit_list' site.pk %}{% if c.block %}?blok={{ c.block.pk }}{% endif %}">Daireleri gör</a>
+      {% if can_manage and c.block %}
+      <a class="btn-ghost" href="{% url 'property:unit_create' site.pk %}?blok={{ c.block.pk }}">+ Daire</a>
+      <a class="btn-ghost" href="{% url 'property:block_update' site.pk c.block.pk %}">Düzenle</a>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% elif not can_manage %}
+<div class="card card-body py-14 text-center text-muted">Henüz blok yok.</div>
+{% endif %}
+{% endblock %}

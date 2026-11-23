@@ -1,12 +1,11 @@
 {% extends "layouts/site.html" %}
 {% load ui %}
-{% block title %}Bölümler · {{ site.name }}{% endblock %}
-{% block page_title %}Bağımsız bölümler{% endblock %}
-{% block page_subtitle %}{{ units|length }} bölüm{% if archived %} (arşiv){% endif %}{% endblock %}
+{% block title %}Daireler · {{ site.name }}{% endblock %}
+{% block page_title %}Daireler{% endblock %}
+{% block page_subtitle %}{{ units|length }} bağımsız bölüm{% if archived %} (arşiv){% endif %}{% endblock %}
 {% block page_actions %}{% site_can 'property.manage' as pm %}{% if pm %}
-<a class="btn-secondary" href="{% url 'property:structure' site.pk %}">Bloklar ve tipler</a>
 <a class="btn-secondary" href="{% url 'property:unit_bulk_create' site.pk %}">Toplu ekle</a>
-<a class="btn-primary" href="{% url 'property:unit_create' site.pk %}">Yeni bölüm</a>{% endif %}{% endblock %}
+<a class="btn-primary" href="{% url 'property:unit_create' site.pk %}{% if block_id %}?blok={{ block_id }}{% endif %}">{% include "components/icon.html" with name="plus" cls="h-4 w-4" %} Yeni daire</a>{% endif %}{% endblock %}
 {% block content %}
 <form method="get" class="mb-4 flex flex-wrap items-end gap-2">
   <div class="grow sm:grow-0"><label class="label" for="q">Ara</label><input class="input" id="q" name="q" value="{{ q }}" placeholder="Bölüm no, ad ya da telefon"></div>
@@ -35,10 +34,10 @@
 </div>
 {% else %}
 <div class="card card-body py-14 text-center">
-  <h2 class="text-lg font-semibold">{% if q or block_id %}Sonuç yok{% else %}Henüz bölüm yok{% endif %}</h2>
+  <h2 class="text-lg font-semibold">{% if q or block_id %}Sonuç yok{% else %}Henüz daire yok{% endif %}</h2>
   {% if not q and not block_id and not archived %}
-  <p class="mx-auto mt-2 max-w-md text-sm text-muted">Önce blokları ekleyin, sonra daireleri tek tek ya da toplu olarak açın.</p>
-  <div class="mt-6 flex justify-center gap-2"><a class="btn-secondary" href="{% url 'property:structure' site.pk %}">Blok ekle</a><a class="btn-primary" href="{% url 'property:unit_bulk_create' site.pk %}">Bölümleri toplu ekle</a></div>
+  <p class="mx-auto mt-2 max-w-md text-sm text-muted">Blok eklerken daireleri de tek seferde açabilir, daireleri tek tek ekleyebilir ya da Excel'den kurabilirsiniz.</p>
+  <div class="mt-6 flex flex-wrap justify-center gap-2"><a class="btn-secondary" href="{% url 'property:block_list' site.pk %}">Blok ekle</a><a class="btn-secondary" href="{% url 'imports:setup_home' site.pk %}">Excel'den kur</a><a class="btn-primary" href="{% url 'property:unit_create' site.pk %}">Yeni daire</a></div>
   {% endif %}
 </div>
 {% endif %}

@@ -12,14 +12,15 @@ from apps.property.models import Unit
 from apps.tenancy.permissions import site_view
 
 from . import services
-from .forms import OccupancyForm, PersonForm
+from .forms import OccupancyForm, PersonCreateForm, PersonForm
 from .models import Occupancy, Person, active_on
 
 PERSONAL_FIELDS = {"first_name", "last_name", "phone", "email", "notes"}
 
 
 def site_people(site):
-    return Person.objects.filter(occupancies__unit__site=site).distinct()
+    """Bu sitenin bölümlerine bağlı kişiler + henüz hiçbir bölüme bağlanmamış kişiler."""
+    return Person.objects.filter(Q(occupancies__unit__site=site) | Q(occupancies__isnull=True)).distinct()
 
 
 @site_view("people.view")
@@ -34,9 +35,39 @@ def person_list(request, site):
     for person in people.prefetch_related("occupancies__unit__block"):
         occs = [o for o in person.occupancies.all() if o.unit.site_id == site.pk]
         current = [o for o in occs if o.is_active_on(today)]
-        if current or show_all:
+        if current or show_all or not occs:
             rows.append({"person": person, "current": current, "past": len(occs) - len(current)})
     return render(request, "people/person_list.html", {"site": site, "rows": rows, "q": q, "show_all": show_all})
+
+
+@site_view("people.manage")
+def person_create(request, site):
+    form = PersonCreateForm(request.POST or None, site=site, initial={"start_date": timezone.localdate()})
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        with transaction.atomic():
+            person = form.save()
+            record("person.created", person, site_id=site.pk)
+            unit = d.get("unit")
+            if unit:
+                occ = Occupancy.objects.create(
+                    unit=unit,
+                    person=person,
+                    relation=d["relation"],
+                    start_date=d.get("start_date") or timezone.localdate(),
+                    is_liable=d["is_liable"],
+                )
+                record(
+                    "occupancy.created",
+                    occ,
+                    {"bolum": unit.pk, "kisi": person.pk, "iliski": occ.relation, "baslangic": str(occ.start_date)},
+                    site_id=site.pk,
+                )
+        messages.success(request, f"{person.full_name} eklendi" + (f" ({unit.label})." if unit else "."))
+        if "add_another" in request.POST:
+            return redirect("people:person_create", site_id=site.pk)
+        return redirect("people:person_detail", site_id=site.pk, person_id=person.pk)
+    return render(request, "people/person_create.html", {"site": site, "form": form})
 
 
 @site_view("people.view")

@@ -56,3 +56,18 @@ def anonymize(person: Person, *, site_id: int | None = None) -> Person:
                 OtpChallenge.objects.filter(phone=phone).delete()
         record("person.anonymized", person, site_id=site_id)
     return person
+
+
+def find_or_create_person(first: str, last: str, phone: str = "", email: str = "") -> tuple[Person, bool]:
+    """Aynı ad + soyad + telefon kayıtlıysa o kişiyi döndürür (iki dairenin maliki); telefonsuzlar hep yeni."""
+    first, last = " ".join(first.split()), " ".join(last.split())
+    if phone:
+        existing = Person.objects.filter(
+            phone=phone, first_name__iexact=first, last_name__iexact=last, is_anonymized=False
+        ).first()
+        if existing:
+            if email and not existing.email:
+                existing.email = email
+                existing.save(update_fields=["email", "updated_at"])
+            return existing, False
+    return Person.objects.create(first_name=first, last_name=last, phone=phone, email=email), True

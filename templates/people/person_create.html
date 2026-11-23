@@ -1,0 +1,28 @@
+{% extends "layouts/site.html" %}
+{% block title %}Yeni kişi{% endblock %}
+{% block page_title %}Yeni kişi{% endblock %}
+{% block page_subtitle %}Malik, kiracı ya da oturan. Telefon, sakin portalına giriş için kullanılır.{% endblock %}
+{% block content %}
+<form method="post" class="card max-w-2xl" novalidate x-data="{ unit: '{{ form.unit.value|default_if_none:'' }}' }">{% csrf_token %}
+  <div class="card-body space-y-4">
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.first_name %}{% include "components/field.html" with field=form.last_name %}</div>
+    <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.phone %}{% include "components/field.html" with field=form.email %}</div>
+    {% include "components/field.html" with field=form.notes %}
+  </div>
+  <div class="card-body space-y-4 border-t border-line">
+    <h2 class="section-title">Daireye bağla</h2>
+    <div x-init="$el.querySelector('select').addEventListener('change', e => unit = e.target.value)">{% include "components/field.html" with field=form.unit %}</div>
+    <div x-show="unit" x-cloak class="grid gap-4 sm:grid-cols-2">
+      {% include "components/field.html" with field=form.relation %}
+      {% include "components/field.html" with field=form.start_date %}
+      <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="{{ form.is_liable.html_name }}" class="size-4 rounded border-line accent-brand-600"{% if form.is_liable.value %} checked{% endif %}> Borç sorumlusu (aidat bu kişiye yazılır)</label>
+    </div>
+  </div>
+  <div class="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-4 sm:px-6">
+    <a class="btn-ghost" href="{% url 'people:person_list' site.pk %}">Vazgeç</a>
+    <button class="btn-secondary" name="add_another" value="1">Kaydet ve yeni kişi</button>
+    <button class="btn-primary">Kaydet</button>
+  </div>
+</form>
+{% endblock %}
