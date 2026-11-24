@@ -824,3 +824,23 @@ def test_ledger_override_must_match_sheet(site):
     payload, _ = ledger_grid.parse(ledger_file(), LEDGER_OPTS)
     p = ledger_grid.plan(site, payload, {**LEDGER_OPTS, "fee_overrides": "KT9-9=200"})
     assert any("Çizelgede olmayan daire" in i.message for i in p.issues.items)
+
+
+def test_classify_charge_minus_paid():
+    c = ledger_grid.classify("644-450=194/14.10.26")
+    assert (c.kind, c.charge, c.amount, c.day) == ("partial", 64400, 45000, date(2026, 10, 14))
+    assert ledger_grid.classify("644-450=200/14.10.26").kind == "unknown"  # hesap tutmuyor
+
+
+@pytest.mark.django_db
+def test_ledger_amount_sheet_partial_charge(site):
+    head = ["S", "BLOK", "DAIRE", "AD", "SOYAD", "EKİM"]
+    data = xlsx({"yakıt": [head, [1, "KT1", 1, "Deniz", "Örnek", "644-450=194/14.10.26"]]})
+    opts = {"first_month": "2026-10-01", "monthly_fee": None, "charge_type": "Yakıt"}
+    payload, issues = ledger_grid.parse(data, opts)
+    assert not issues.has_errors, issues.as_list()
+    ledger_grid.apply(site, payload, opts, None)
+    unit = Unit.objects.get(site=site, number="1")
+    assert unit_balances(site)[unit.pk] == 19400
+    assert Payment.objects.get(unit=unit).amount == 45000
+    check_consistency(site)

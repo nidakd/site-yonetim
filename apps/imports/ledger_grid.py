@@ -11,6 +11,7 @@ Sabit aidatlı çizelge (seçeneklerde "Aylık aidat" girilir):
     boş                                       → o ay borçlandırılmaz (henüz gelmemiş ay)
 
 Tutarlı çizelge (yakıt; "Aylık aidat" boş bırakılır):
+    "644-450=194/14.10.26"                    → borç 644; o tarihte 450 ödendi; 194 kaldı
     sayı (1841)                               → o ayın borcu 1841 TL, ödenmedi
     "1489/25.10.26"                           → o ayın borcu 1489 TL, o tarihte ödendi
     "muaf" / boş                              → borç yok
@@ -43,6 +44,8 @@ SKIP_HEADERS = ("toplam",)
 _DATE = r"(\d{1,2})\s*\.+\s*(\d{1,2})\s*\.+\s*(\d{2,4})"
 _DATE_ONLY = re.compile(rf"^{_DATE}\s*(e)?$")
 _AMOUNT_DATE = re.compile(rf"^([\d.,]+)\s*/\s*{_DATE}\s*(e)?$")
+# "644-450=194/14.10.26": borç 644; o tarihte 450 ödendi; 194 borç kaldı (kullanıcı onayı, 24.11.2026)
+_PARTIAL_CHARGE = re.compile(rf"^([\d.,]+)\s*-\s*([\d.,]+)\s*=\s*([\d.,]+)\s*/\s*{_DATE}\s*(e)?$")
 
 
 def _add_months(day: date, n: int) -> date:
@@ -70,6 +73,7 @@ def _money(text: str) -> int | None:
 class Cell:
     kind: str  # paid | partial | unpaid | credit | exempt | empty | unknown
     amount: int | None = None  # ödeme tutarı (partial) ya da borç tutarı (tutarlı çizelgede)
+    charge: int | None = None  # "A-B=C/tarih" hücresinde borç (A); ödeme amount (B)
     day: date | None = None
     cash: bool = False
     raw: str = ""
@@ -102,6 +106,12 @@ def classify(value: object) -> Cell:
     if m := _DATE_ONLY.match(low):
         day = _mkdate(m[1], m[2], m[3])
         return Cell("paid", day=day, cash=bool(m[4]), raw=text) if day else Cell("unknown", raw=text)
+    if m := _PARTIAL_CHARGE.match(low):
+        charge, paid, rest = _money(m[1]), _money(m[2]), _money(m[3])
+        day = _mkdate(m[4], m[5], m[6])
+        if day and charge and paid and rest is not None and charge - paid == rest:
+            return Cell("partial", amount=paid, charge=charge, day=day, cash=bool(m[7]), raw=text)
+        return Cell("unknown", raw=text)
     if m := _AMOUNT_DATE.match(low):
         day, amount = _mkdate(m[2], m[3], m[4]), _money(m[1])
         if day and amount:
@@ -208,7 +218,11 @@ def parse(data: bytes, options: dict) -> tuple[dict, Issues]:
             if cell.kind == "credit":
                 issues.error(coord, f"'artıda' yalnızca geçmiş borç sütununda kullanılabilir: {cell.raw!r}")
             elif cell.kind == "unknown":
-                issues.error(coord, f"Hücre okunamadı: {cell.raw!r}. Tarih, tutar, tutar/tarih ya da 'muaf' olmalı.")
+                issues.error(
+                    coord,
+                    f"Hücre okunamadı: {cell.raw!r}. Tarih, tutar, tutar/tarih, "
+                    "borç-ödenen=kalan/tarih ya da 'muaf' olmalı.",
+                )
             elif cell.day and cell.day > timezone.localdate():
                 issues.error(coord, f"Ödeme tarihi ileri bir tarih: {cell.raw!r}")
             elif fixed_fee is None and cell.kind == "paid":
@@ -399,16 +413,17 @@ def plan(site, payload: dict, options: dict) -> LedgerPlan:
         lr.fee, lr.fee_overridden = unit_fee, key in overrides
         if r["opening"]:
             o = r["opening"]
-            amount = o["amount"] or 0
+            amount = o.get("charge") or o["amount"] or 0
             if o["kind"] == "credit":
                 p.advances.append((key, amount))
                 lr.advance = amount
             elif amount:
                 p.openings.append((key, amount))
                 lr.opening = amount
-            if o["kind"] == "partial":  # "tutar/tarih": borç ödendi
-                p.payments.append((key, date.fromisoformat(o["day"]), amount, o["cash"]))
-                lr.paid += amount
+            if o["kind"] == "partial":  # "tutar/tarih": borç ödendi (A-B=C/tarih: B kadar)
+                paid = o["amount"] or 0
+                p.payments.append((key, date.fromisoformat(o["day"]), paid, o["cash"]))
+                lr.paid += paid
         last_nonempty = None
         exempt_run_start = None
         for c in r["cells"]:
@@ -425,9 +440,9 @@ def plan(site, payload: dict, options: dict) -> LedgerPlan:
             if unit_fee:  # sabit aidat
                 amount = unit_fee
                 pay = unit_fee if kind == "paid" else (c["amount"] if kind == "partial" else 0)
-            else:  # tutarlı çizelge
-                amount = c["amount"] or 0
-                pay = amount if kind == "partial" else 0
+            else:  # tutarlı çizelge: "A-B=C/tarih" ise borç A, ödeme B; "X/tarih" ise ikisi de X
+                amount = c.get("charge") or c["amount"] or 0
+                pay = (c["amount"] or 0) if kind == "partial" else 0
             if amount:
                 p.charges.setdefault(period, []).append((key, amount))
                 lr.charged += amount
