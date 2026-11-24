@@ -205,3 +205,28 @@ def cancel_payment(payment: Payment, user, reason: str, day: date | None = None)
         payment.save()
         record("payment.cancelled", payment, {"makbuz": payment.receipt_no, "neden": reason}, site_id=site.pk)
     return payment
+
+
+def reallocate(payment: Payment, *, preferred: Collection[int] = ()) -> None:
+    """Ödemenin borçlarla eşleşmesini yeniden kurar (ör. yanlış türe giden ödeme).
+
+    Defter değişmez: sakin alacağı (120) bölüm bazında tutulur, hangi borcun kapandığı yalnızca
+    eşleşme kaydıdır. Eski eşleşmeler pasifleşir (iz kalır); avansa kalan tutar değişmemelidir."""
+    with transaction.atomic():
+        payment = Payment.objects.select_for_update().get(pk=payment.pk)
+        if payment.status != Payment.Status.VALID:
+            raise PaymentError("İptal edilmiş ödeme yeniden eşleştirilemez.")
+        active = payment.allocations.filter(is_active=True)
+        before = active.aggregate(s=Sum("amount"))["s"] or 0
+        active.update(is_active=False, reversed_at=timezone.now())
+        _, items = _open_items(payment.unit)
+        result = allocate(before, items, preferred=set(preferred))
+        if result.allocated != before:
+            raise PaymentError("Yeniden eşleştirmede tutar değişti; işlem geri alındı.")
+        Allocation.objects.bulk_create(
+            [
+                Allocation(organization_id=payment.organization_id, payment=payment, charge_id=cid, amount=take)
+                for cid, take in result.lines
+            ]
+        )
+        record("payment.reallocated", payment, {"makbuz": payment.receipt_no, "tutar": before}, site_id=payment.site_id)

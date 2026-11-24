@@ -527,17 +527,22 @@ def apply(site, payload: dict, options: dict, user):
         for name in p.new_blocks:
             blocks[norm(name)] = Block.objects.create(site=site, name=name, order=order)
             order += 1
-        for block_name, number, first, last in p.new_units:
-            unit = Unit.objects.create(
-                site=site, block=blocks.get(norm(block_name)) if block_name else None, number=number
-            )
-            if options.get("create_people", True) and first:
-                person, _ = find_or_create_person(first, last or "-")
-                Occupancy.objects.create(unit=unit, person=person, relation="owner", start_date=start, is_liable=True)
+        for block_name, number, _first, _last in p.new_units:
+            Unit.objects.create(site=site, block=blocks.get(norm(block_name)) if block_name else None, number=number)
         units = {
             unit_key(u.block.name if u.block_id else "", u.number): u
             for u in Unit.objects.filter(site=site).select_related("block")
         }
+        if options.get("create_people", True):  # kişisi olmayan dairelere çizelgedeki kişi (yeni ya da mevcut daire)
+            occupied = set(Occupancy.objects.filter(unit__site=site).values_list("unit_id", flat=True))
+            for r in payload["rows"]:
+                unit = units.get(unit_key(r["block"], r["number"]))
+                if unit and r["first"] and unit.pk not in occupied:
+                    person, _ = find_or_create_person(r["first"], r["last"] or "-")
+                    Occupancy.objects.create(
+                        unit=unit, person=person, relation="owner", start_date=start, is_liable=True
+                    )
+                    occupied.add(unit.pk)
         try:
             if p.openings or p.advances:
                 opening.post_opening(
@@ -571,6 +576,10 @@ def apply(site, payload: dict, options: dict, user):
                     account=cash,
                     user=user,
                     note=f"Excel aktarımı ({payload['sheet']})",
+                    # çizelgedeki ödeme önce kendi türünün borcunu kapatır (yakıt ödemesi eski aidata gitmesin)
+                    preferred=Charge.objects.filter(
+                        unit=units[key], charge_type=charge_type, is_cancelled=False
+                    ).values_list("id", flat=True),
                 )
             from apps.billing.services import overlapping_agreements
 

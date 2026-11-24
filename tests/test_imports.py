@@ -844,3 +844,44 @@ def test_ledger_amount_sheet_partial_charge(site):
     assert unit_balances(site)[unit.pk] == 19400
     assert Payment.objects.get(unit=unit).amount == 45000
     check_consistency(site)
+
+
+@pytest.mark.django_db
+def test_ledger_payment_prefers_its_own_charge_type(site):
+    aidat_file = xlsx({"aidat": [["S", "BLOK", "DAIRE", "AD", "SOYAD", "EKİM"], [1, "KT1", 1, "A", "B", 800]]})
+    opts = {"first_month": "2026-10-01", "monthly_fee": 80000, "charge_type": "Aidat"}
+    ledger_grid.apply(site, ledger_grid.parse(aidat_file, opts)[0], opts, None)
+    fuel_file = xlsx(
+        {"yakıt": [["S", "BLOK", "DAIRE", "AD", "SOYAD", "KASIM"], [1, "KT1", 1, "A", "B", "500/20.11.26"]]}
+    )
+    opts = {"first_month": "2026-11-01", "monthly_fee": None, "charge_type": "Yakıt"}
+    ledger_grid.apply(site, ledger_grid.parse(fuel_file, opts)[0], opts, None)
+    open_types = {c.charge_type.name: c.remaining for c in billing.open_charges(Unit.objects.get(site=site))}
+    assert open_types == {"Aidat": 80000}  # yakıt ödemesi yakıtı kapattı, aidat açık kaldı
+    check_consistency(site)
+
+
+@pytest.mark.django_db
+def test_reallocate_moves_allocation_without_touching_ledger(site, two_units):
+    u1, _ = two_units
+    aidat = billing.ChargeType.objects.get(site=site, name="Aidat")
+    fuel = billing.ChargeType.objects.get(site=site, name="Yakıt")
+    from apps.billing import history
+
+    a = history.post_month(site, aidat, date(2026, 10, 1), date(2026, 10, 10), [(u1, 80000)], None, "Ekim aidat")
+    f = history.post_month(site, fuel, date(2026, 11, 1), date(2026, 11, 10), [(u1, 50000)], None, "Kasım yakıt")
+    pay = payments.create_payment(
+        site,
+        u1,
+        amount=50000,
+        day=date(2026, 11, 20),
+        channel="cash",
+        account=Account.objects.get(site=site, code="100"),
+        user=None,
+    )
+    assert pay.allocations.get(is_active=True).charge.batch_id == a.pk
+    lines_before = ledger.balance(ledger.system_account(site, Account.Role.RECEIVABLES))
+    payments.reallocate(pay, preferred=list(f.charges.values_list("id", flat=True)))
+    assert pay.allocations.get(is_active=True).charge.batch_id == f.pk
+    assert ledger.balance(ledger.system_account(site, Account.Role.RECEIVABLES)) == lines_before
+    check_consistency(site)

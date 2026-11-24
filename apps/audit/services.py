@@ -50,6 +50,7 @@ ACTIONS: dict[str, str] = {
     "batch.cancelled": "Tahakkuk iptal edildi",
     "payment.created": "Tahsilat alındı",
     "payment.cancelled": "Tahsilat iptal edildi",
+    "payment.reallocated": "Tahsilat eşleşmesi düzeltildi",
     "advance.applied": "Avans borca mahsup edildi",
     "vendor.created": "Tedarikçi eklendi",
     "expense.created": "Gider kaydedildi",
