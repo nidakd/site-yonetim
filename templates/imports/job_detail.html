@@ -2,7 +2,7 @@
 {% load ui %}
 {% block title %}{{ job.file_name }}{% endblock %}
 {% block page_title %}{{ job.file_name }}{% endblock %}
-{% block page_subtitle %}{{ job.get_kind_display }} · {{ job.created_at|date:"d.m.Y H:i" }}{% if job.options.opening_date %} · açılış tarihi {{ job.options.opening_date }}{% endif %}{% endblock %}
+{% block page_subtitle %}{{ job.get_kind_display }} · {{ job.created_at|date:"d.m.Y H:i" }}{% if job.options.fee_overrides %} · farklı aidat: {{ job.options.fee_overrides }}{% endif %}{% if job.options.opening_date %} · açılış tarihi {{ job.options.opening_date }}{% endif %}{% endblock %}
 {% block page_actions %}<a class="btn-ghost" href="{% url 'imports:setup_home' site.pk %}">Kurulum sayfası</a>{% endblock %}
 {% block content %}
 {% if job.status == 'preview' %}
@@ -64,7 +64,7 @@
     <thead><tr><th>Satır</th><th>Daire</th><th>Kişi</th><th class="num">Geçmiş borç</th><th class="num">Borçlandırılan</th><th class="num">Ödenen</th><th class="num">Kalan</th><th class="num">Çizelgede</th></tr></thead>
     <tbody>
     {% for r in plan.ledger_rows %}
-      <tr><td>{{ r.row }}</td><td class="font-medium">{{ r.label }}{% if not r.unit_exists %} <span class="badge-blue">yeni</span>{% endif %}{% if r.exempt_months %} <span class="badge-gray">{{ r.exempt_months }} ay muaf</span>{% endif %}</td><td>{{ r.person|default:"—" }}</td>
+      <tr><td>{{ r.row }}</td><td class="font-medium">{{ r.label }}{% if not r.unit_exists %} <span class="badge-blue">yeni</span>{% endif %}{% if r.exempt_months %} <span class="badge-gray">{{ r.exempt_months }} ay muaf</span>{% endif %}{% if r.fee_overridden %} <span class="badge-amber">aidat {{ r.fee|tl }}</span>{% endif %}</td><td>{{ r.person|default:"—" }}</td>
         <td class="num">{% if r.opening %}{{ r.opening|tl }}{% endif %}</td><td class="num">{{ r.charged|tl }}</td><td class="num">{{ r.paid|tl }}</td>
         <td class="num {% if r.balance > 0 %}font-semibold text-red-700{% endif %}">{{ r.balance|tl }}</td>
         <td class="num {% if r.sheet_balance is not None and r.sheet_balance != r.balance %}text-amber-700 font-semibold{% endif %}">{% if r.sheet_balance is not None %}{{ r.sheet_balance|tl }}{% endif %}</td></tr>

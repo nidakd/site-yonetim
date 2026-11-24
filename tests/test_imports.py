@@ -787,3 +787,40 @@ def test_ledger_upload_flow(client, admin_a, org_a, site_a):
         job.refresh_from_db()
         assert job.status == "applied" and job.payload == {}
         assert Unit.objects.filter(site=site_a).count() == 4
+
+
+def test_parse_fee_overrides():
+    out, errors = ledger_grid.parse_overrides("KT2-2=200; KT5 2 = 1.250,50\nD1=300 TL")
+    assert out == {("kt2", "2"): 20000, ("kt5", "2"): 125050, ("", "d1"): 30000}
+    assert not errors
+    _, errors = ledger_grid.parse_overrides("KT2-2 200")
+    assert errors
+
+
+@pytest.mark.django_db
+def test_ledger_fee_override_and_hint(site):
+    head = ["S", "BLOK", "DAIRE", "AD", "SOYAD", "OCAK", "SUBAT", "MART", "NİSAN"]
+    rows = [[1, "KT2", 2, "Deniz", "Örnek", _dt(2026, 1, 9), 200, 400, 600]]
+    data = xlsx({"aidat": [head, *rows]})
+    opts = {"first_month": "2026-01-01", "monthly_fee": 80000, "charge_type": "Aidat"}
+    payload, _ = ledger_grid.parse(data, opts)
+    p = ledger_grid.plan(site, payload, opts)
+    assert any("KT2-2=200" in i.message for i in p.issues.items)  # ipucu
+
+    opts = {**opts, "fee_overrides": "KT2-2=200"}
+    p = ledger_grid.plan(site, payload, opts)
+    assert not [i for i in p.issues.items if i.level != "info"]
+    assert p.ledger_rows[0].balance == 60000
+    ledger_grid.apply(site, payload, opts, None)
+    unit = Unit.objects.get(site=site, number="2")
+    agreement = DuesAgreement.objects.get(unit=unit)
+    assert (agreement.kind, agreement.amount, agreement.valid_from) == ("fixed", 20000, date(2026, 1, 1))
+    assert unit_balances(site)[unit.pk] == 60000
+    check_consistency(site)
+
+
+@pytest.mark.django_db
+def test_ledger_override_must_match_sheet(site):
+    payload, _ = ledger_grid.parse(ledger_file(), LEDGER_OPTS)
+    p = ledger_grid.plan(site, payload, {**LEDGER_OPTS, "fee_overrides": "KT9-9=200"})
+    assert any("Çizelgede olmayan daire" in i.message for i in p.issues.items)

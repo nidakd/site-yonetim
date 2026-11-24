@@ -267,6 +267,8 @@ class LedgerRow:
     advance: int = 0
     sheet_balance: int | None = None
     exempt_months: int = 0
+    fee: int | None = None  # bu dairenin aylık aidatı (sabit aidatlı çizelgede)
+    fee_overridden: bool = False
 
     @property
     def balance(self) -> int:
@@ -289,6 +291,7 @@ class LedgerPlan:
     new_blocks: list = field(default_factory=list)
     new_units: list = field(default_factory=list)  # [(block, number, first, last)]
     exempt_from: dict = field(default_factory=dict)  # key → ilk muaf ay (sonda muaf olanlar)
+    fee_overrides: dict = field(default_factory=dict)  # key → daireye özel aylık aidat
     grid_rows: list = field(default_factory=list)  # şablonla uyum için
 
     @property
@@ -318,12 +321,56 @@ def unit_key(block: str, number: str) -> tuple[str, str]:
     return norm(block), norm(number)
 
 
+_OVERRIDE = re.compile(r"^\s*(.+?)\s*=\s*([\d.,]+)\s*(?:tl|₺)?\s*$", re.IGNORECASE)
+
+
+def parse_overrides(text: str) -> tuple[dict, list[str]]:
+    """'KT2-2=200; KT5 2 = 200' → {("kt2","2"): 20000, ...}. Satır sonu ya da ';' ile ayrılır."""
+    out, errors = {}, []
+    for part in re.split(r"[;\n]+", text or ""):
+        if not part.strip():
+            continue
+        m = _OVERRIDE.match(part)
+        amount = _money(m.group(2)) if m else None
+        if not m or not amount:
+            errors.append(f"'{part.strip()}' okunamadı; 'KT2-2=200' biçiminde yazın.")
+            continue
+        unit = m.group(1).strip()
+        split = re.match(r"^(.*?)[\s\-/·]+([^\s\-/·]+)$", unit)
+        block, number = (split.group(1), split.group(2)) if split else ("", unit)
+        out[unit_key(block, number)] = amount
+    return out, errors
+
+
+def _constant_step(cells: list[dict]) -> int | None:
+    """Art arda ödenmemiş ayların biriken borcu hep aynı miktarda artıyorsa o miktar (aylık aidat ipucu)."""
+    steps, prev = [], None
+    for c in cells:
+        if c["kind"] == "unpaid" and c["amount"] is not None:
+            if prev is not None:
+                steps.append(c["amount"] - prev)
+            prev = c["amount"]
+        elif c["kind"] != "empty":
+            prev = None
+    if len(steps) >= 2 and len(set(steps)) == 1 and steps[0] > 0:
+        return steps[0]
+    return None
+
+
 def plan(site, payload: dict, options: dict) -> LedgerPlan:
     from apps.ledger import services as ledger
 
     issues = Issues()
     p = LedgerPlan(issues)
     fee = options.get("monthly_fee")
+    overrides, override_errors = parse_overrides(options.get("fee_overrides") or "")
+    for message in override_errors:
+        issues.error("Farklı aidatlı daireler", message)
+    if overrides and not fee:
+        issues.error(
+            "Farklı aidatlı daireler", "Daireye özel aidat yalnızca 'Aylık aidat' girilen çizelgede kullanılır."
+        )
+    p.fee_overrides = overrides
     charge_type = ChargeType.objects.filter(site=site, name=options.get("charge_type") or "Aidat").first()
     if charge_type is None:
         issues.error("Seçenekler", f"'{options.get('charge_type')}' borç türü bu sitede yok.")
@@ -348,6 +395,8 @@ def plan(site, payload: dict, options: dict) -> LedgerPlan:
             p.new_units.append((r["block"], r["number"], r["first"], r["last"]))
         person = f"{r['first']} {r['last']}".strip()
         lr = LedgerRow(r["row"], f"{r['block']} · {r['number']}" if r["block"] else r["number"], person, key in units)
+        unit_fee = overrides.get(key, fee)
+        lr.fee, lr.fee_overridden = unit_fee, key in overrides
         if r["opening"]:
             o = r["opening"]
             amount = o["amount"] or 0
@@ -373,9 +422,9 @@ def plan(site, payload: dict, options: dict) -> LedgerPlan:
                 exempt_run_start = exempt_run_start or period
                 continue
             exempt_run_start = None
-            if fee:  # sabit aidat
-                amount = fee
-                pay = fee if kind == "paid" else (c["amount"] if kind == "partial" else 0)
+            if unit_fee:  # sabit aidat
+                amount = unit_fee
+                pay = unit_fee if kind == "paid" else (c["amount"] if kind == "partial" else 0)
             else:  # tutarlı çizelge
                 amount = c["amount"] or 0
                 pay = amount if kind == "partial" else 0
@@ -390,12 +439,24 @@ def plan(site, payload: dict, options: dict) -> LedgerPlan:
         if fee and last_nonempty and last_nonempty["kind"] == "unpaid":
             lr.sheet_balance = last_nonempty["amount"]
             if lr.sheet_balance not in (lr.months_balance, lr.balance):
+                hint = ""
+                step = _constant_step(r["cells"])
+                if step and step != unit_fee:
+                    code = f"{r['block']}-{r['number']}" if r["block"] else r["number"]
+                    hint = (
+                        f" Borç her ay {format_try(step)} artıyor; bu dairenin aidatı farklıysa "
+                        f"'Farklı aidatlı daireler' alanına {code}={step // 100} yazın."
+                    )
                 issues.warning(
                     last_nonempty["coord"],
                     f"Çizelgedeki birikmiş borç {format_try(lr.sheet_balance or 0)}, hesaplanan "
-                    f"{format_try(lr.months_balance)} (geçmiş borç hariç). Önizlemede kontrol edin.",
+                    f"{format_try(lr.months_balance)} (geçmiş borç hariç).{hint}",
                 )
         p.ledger_rows.append(lr)
+
+    missing = [f"{k[0]} {k[1]}".strip() for k in overrides if k not in seen]
+    if missing:
+        issues.error("Farklı aidatlı daireler", f"Çizelgede olmayan daire: {', '.join(missing)}")
 
     # aynı ay aynı türden zaten borçlandırılmış daireler
     existing = {
@@ -496,6 +557,19 @@ def apply(site, payload: dict, options: dict, user):
                     user=user,
                     note=f"Excel aktarımı ({payload['sheet']})",
                 )
+            from apps.billing.services import overlapping_agreements
+
+            if charge_type.apply_agreements:
+                for key, amount in p.fee_overrides.items():
+                    unit = units[key]
+                    if key not in p.exempt_from and not overlapping_agreements(unit, start, None).exists():
+                        DuesAgreement.objects.create(
+                            unit=unit,
+                            kind="fixed",
+                            amount=amount,
+                            valid_from=start,
+                            decision_ref="Excel aktarımı: daireye özel aidat",
+                        )
             for key, valid_from in p.exempt_from.items():
                 unit = units[key]
                 if not DuesAgreement.objects.filter(unit=unit, kind="exempt", valid_to__isnull=True).exists():

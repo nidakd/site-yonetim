@@ -27,6 +27,7 @@
           {% include "components/field.html" with field=form.sheet_name %}
           {% include "components/field.html" with field=form.charge_type %}
         </div>
+        {% include "components/field.html" with field=form.fee_overrides %}
         <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="{{ form.create_people.html_name }}" class="mt-0.5 size-4 rounded border-line accent-brand-600"{% if form.create_people.value %} checked{% endif %}> <span>{{ form.create_people.label }}</span></label>
         <p class="help">Hücre kuralları: tarih = o ayın aidatı o tarihte ödendi ("e" eki = elden/nakit, eksiz = banka) · sayı = ödenmedi (biriken borç) · "muaf" = borç yok · "300/28.03.2026" = o tarihte 300 TL ödeme. Geçmiş tahsilatlar ayrı "Geçmiş tahsilatlar (Excel aktarımı)" kasasına yazılır; gerçek Kasa/Banka bakiyeniz bozulmaz.</p>
       </div>

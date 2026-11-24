@@ -37,6 +37,13 @@ class UploadForm(forms.Form):
         initial="Aidat",
         required=False,
     )
+    fee_overrides = forms.CharField(
+        label="Farklı aidatlı daireler",
+        required=False,
+        max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 2, "placeholder": "KT2-2=200; KT5-2=200"}),
+        help_text="Aylık aidatı diğerlerinden farklı daireler. Sonraki aylarda da bu tutar uygulanır.",
+    )
     create_people = forms.BooleanField(
         label="Yeni dairelere AD/SOYAD sütunundaki kişiyi sorumlu olarak ekle", required=False, initial=True
     )
@@ -84,4 +91,5 @@ class UploadForm(forms.Form):
             "sheet_name": (d.get("sheet_name") or "").strip(),
             "charge_type": d.get("charge_type") or "Aidat",
             "create_people": bool(d.get("create_people")),
+            "fee_overrides": (d.get("fee_overrides") or "").strip(),
         }
