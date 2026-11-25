@@ -435,7 +435,7 @@ def test_expense_and_cancel(site, admin_a):
 def test_transfer_and_new_accounts(site, admin_a):
     second_bank = expenses.create_account(site, name="Vakıf Katılım", group="bank", iban="TR00 0000 0000")
     assert second_bank.code == "102.02" and second_bank.iban == "TR0000000000"
-    assert expenses.create_account(site, name="Asansör bakımı", group="expense").code == "770.10"
+    assert expenses.create_account(site, name="Asansör bakımı", group="expense").code == "770.13"
     expenses.create_transfer(site, day=NOV, from_account=bank(site), to_account=second_bank, amount=1000, user=admin_a)
     assert ledger.balance(second_bank) == 1000 and ledger.balance(bank(site)) == -1000
     with pytest.raises(expenses.ExpenseError):
@@ -462,3 +462,19 @@ def test_statement_debtors_and_summary(site, admin_a):
     summary = site_summary(site, today=date(2026, 11, 20))
     assert summary["accrued"] == 600000 and summary["collected"] == 100000
     assert summary["receivable"] == 500000 and summary["cash_total"] == 100000 and summary["debtor_count"] == 4
+
+
+@pytest.mark.django_db
+def test_chart_completed_for_old_sites(site):
+    Account.objects.filter(site=site, code__in=["770.10", "770.11", "770.12"]).delete()
+    Account.objects.filter(site=site, role=Account.Role.PAYABLES).delete()
+    Account.objects.filter(site=site, code="770.04").update(name="Temizlik")
+    Account.objects.create(site=site, code="770.10", name="Asansör bakımı", kind=Account.Kind.EXPENSE)
+    ledger.ensure_chart(site)
+    names = dict(Account.objects.filter(site=site, kind=Account.Kind.EXPENSE).values_list("name", "code"))
+    assert names["Temizlik malzemesi"] == "770.11" and names["Yönetim ücreti"] == "770.13"
+    assert "Temizlik hizmeti" not in names and names["Asansör bakımı"] == "770.10"
+    assert ledger.system_account(site, Account.Role.PAYABLES).code == "320"
+    count = Account.objects.filter(site=site).count()
+    ledger.ensure_chart(site)
+    assert Account.objects.filter(site=site).count() == count

@@ -27,6 +27,7 @@ class Account(TenantModel):
         RECEIVABLES = "receivables", "Sakin alacakları"
         ADVANCES = "advances", "Alınan avanslar"
         OPENING = "opening", "Açılış bakiyeleri"
+        PAYABLES = "payables", "Satıcılara borçlar"
 
     class CashKind(models.TextChoices):
         CASH = "cash", "Kasa"
