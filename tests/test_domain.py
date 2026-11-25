@@ -239,3 +239,15 @@ def test_allocation_properties(amount, items):
     # yalnızca son satır kısmi olabilir; öncekiler borcu tamamen kapatır
     for item_id, take in result.lines[:-1]:
         assert take == by_id[item_id].remaining
+
+
+def test_bill_remaining_and_payment_check():
+    from domain.bills import BillError, check_payment, remaining
+
+    assert remaining(1000, [300, 200]) == 500
+    assert check_payment(1000, [300], 700) == 0
+    for bad in (0, -1, 701):
+        with pytest.raises(BillError):
+            check_payment(1000, [300], bad)
+    with pytest.raises(BillError):
+        remaining(1000, [1200])

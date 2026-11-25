@@ -1,0 +1,48 @@
+{% extends "layouts/site.html" %}
+{% load ui %}
+{% block title %}Ödenecek faturalar · {{ site.name }}{% endblock %}
+{% block page_title %}Ödenecek faturalar{% endblock %}
+{% block page_subtitle %}Gelen faturayı kaydedin; parası çıkınca “Öde” ile kapatın. Hemen ödenen harcamalar için Giderler sayfasını kullanın.{% endblock %}
+{% block content %}
+<div class="mb-6 grid gap-4 sm:grid-cols-2">
+  <div class="card p-5"><p class="text-sm text-muted">Ödenmemiş toplam</p><p class="mt-1 text-2xl font-semibold">{{ open_total|tl }}</p></div>
+  <div class="card p-5"><p class="text-sm text-muted">Son ödeme tarihi geçmiş</p><p class="mt-1 text-2xl font-semibold {% if overdue_total %}text-red-700{% endif %}">{{ overdue_total|tl }}</p></div>
+</div>
+{% if can_manage %}
+<details class="card mb-6" {% if form.errors %}open{% endif %}>
+  <summary class="cursor-pointer px-5 py-4 font-semibold">Fatura kaydet</summary>
+  <form method="post" class="space-y-4 border-t border-line p-5" novalidate>{% csrf_token %}
+    {% include "components/form_errors.html" %}
+    <div class="grid gap-4 sm:grid-cols-3">{% include "components/field.html" with field=form.date %}{% include "components/field.html" with field=form.due_date %}{% include "components/field.html" with field=form.amount %}</div>
+    <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.category %}{% include "components/field.html" with field=form.description %}</div>
+    <div class="grid gap-4 sm:grid-cols-2">{% include "components/field.html" with field=form.vendor %}{% include "components/field.html" with field=form.document_number %}</div>
+    <p class="text-xs text-muted">Tedarikçi eklemek için Giderler sayfasındaki “Yeni tedarikçi” alanını kullanın.</p>
+    <div class="flex justify-end"><button class="btn-primary">Faturayı kaydet</button></div>
+  </form>
+</details>
+{% endif %}
+<div class="mb-3 flex gap-2 text-sm">
+  <a href="?goster=acik" class="{% if show == 'acik' %}btn-primary{% else %}btn-secondary{% endif %} px-3 py-1.5">Ödenmemiş</a>
+  <a href="?goster=tumu" class="{% if show != 'acik' %}btn-primary{% else %}btn-secondary{% endif %} px-3 py-1.5">Tümü</a>
+</div>
+<div class="card overflow-x-auto">
+  <table class="data-table">
+    <thead><tr><th>Fatura tarihi</th><th>Son ödeme</th><th>Açıklama</th><th>Kalem</th><th class="num">Tutar</th><th class="num">Kalan</th><th></th></tr></thead>
+    <tbody>
+    {% for b in page %}
+      <tr class="{% if b.status == 'cancelled' %}text-muted{% endif %}">
+        <td class="whitespace-nowrap">{{ b.date|tr_date }}</td>
+        <td class="whitespace-nowrap {% if b.is_open and b.due_date and b.due_date < today %}font-semibold text-red-700{% endif %}">{% if b.due_date %}{{ b.due_date|tr_date }}{% else %}—{% endif %}</td>
+        <td><a class="font-medium hover:underline" href="{% url 'expenses:bill_detail' site.pk b.pk %}">{{ b.description }}</a>
+          {% if b.status == 'cancelled' %} <span class="badge-gray">İptal</span>{% elif not b.remaining %} <span class="badge-green">Ödendi</span>{% elif b.paid_amount %} <span class="badge-amber">Kısmen ödendi</span>{% endif %}
+          <span class="block text-xs text-muted">{% if b.vendor %}{{ b.vendor.name }}{% endif %}{% if b.document_number %} · belge {{ b.document_number }}{% endif %}</span></td>
+        <td>{{ b.category.name }}</td>
+        <td class="num">{{ b.amount|tl }}</td>
+        <td class="num font-semibold">{% if b.status == 'valid' %}{{ b.remaining|tl }}{% else %}—{% endif %}</td>
+        <td class="text-right">{% if can_manage and b.is_open %}<a class="btn-secondary px-3 py-1.5" href="{% url 'expenses:bill_detail' site.pk b.pk %}#ode">Öde</a>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="py-10 text-center text-muted">{% if show == 'acik' %}Ödenmemiş fatura yok.{% else %}Henüz fatura yok.{% endif %}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from apps.audit.services import record
 from apps.core.forms import CancelForm
@@ -11,8 +12,8 @@ from apps.ledger.services import account_balances, cash_accounts
 from apps.tenancy.permissions import has_perm, site_view
 
 from . import services
-from .forms import AccountForm, ExpenseForm, TransferForm, VendorForm
-from .models import Expense, Transfer
+from .forms import AccountForm, BillForm, BillPaymentForm, ExpenseForm, TransferForm, VendorForm
+from .models import Bill, BillPayment, Expense, Transfer
 
 
 @site_view("finance.view")
@@ -142,3 +143,114 @@ def cash_bank(request, site):
             "can_manage": can_manage,
         },
     )
+
+
+@site_view("finance.view")
+def bill_list(request, site):
+    from apps.billing.services import setup_site
+
+    setup_site(site)
+    can_manage = has_perm(request, "expenses.manage", site.pk)
+    form = BillForm(site=site)
+    if request.method == "POST":
+        if not can_manage:
+            raise PermissionDenied
+        form = BillForm(request.POST, site=site)
+        if form.is_valid():
+            d = form.cleaned_data
+            try:
+                bill = services.create_bill(site, user=request.user, day=d.pop("date"), **d)
+            except services.ExpenseError as exc:
+                form.add_error(None, str(exc))
+            else:
+                messages.success(request, "Fatura kaydedildi. Ödendiğinde \u201cÖde\u201d ile kapatın.")
+                return redirect("expenses:bill_detail", site_id=site.pk, bill_id=bill.pk)
+    show = request.GET.get("goster", "acik")
+    bills = (
+        services.open_bills(site)
+        if show == "acik"
+        else (Bill.objects.filter(site=site).select_related("category", "vendor"))
+    )
+    page = Paginator(bills, 50).get_page(request.GET.get("sayfa"))
+    open_qs = services.open_bills(site)
+    today = timezone.localdate()
+    return render(
+        request,
+        "expenses/bill_list.html",
+        {
+            "site": site,
+            "page": page,
+            "form": form,
+            "show": show,
+            "today": today,
+            "open_total": sum(b.remaining for b in open_qs),
+            "overdue_total": sum(b.remaining for b in open_qs if b.due_date and b.due_date < today),
+            "can_manage": can_manage,
+        },
+    )
+
+
+@site_view("finance.view")
+def bill_detail(request, site, bill_id: int):
+    bill = get_object_or_404(Bill.objects.select_related("category", "vendor"), pk=bill_id, site=site)
+    can_manage = has_perm(request, "expenses.manage", site.pk)
+    form = BillPaymentForm(site=site, bill=bill)
+    if request.method == "POST":
+        if not can_manage:
+            raise PermissionDenied
+        form = BillPaymentForm(request.POST, site=site)
+        if form.is_valid():
+            d = form.cleaned_data
+            try:
+                services.pay_bill(bill, day=d["date"], paid_from=d["paid_from"], amount=d["amount"], user=request.user)
+            except services.ExpenseError as exc:
+                form.add_error(None, str(exc))
+            else:
+                messages.success(request, "Ödeme kaydedildi.")
+                return redirect("expenses:bill_detail", site_id=site.pk, bill_id=bill.pk)
+    return render(
+        request,
+        "expenses/bill_detail.html",
+        {
+            "site": site,
+            "bill": bill,
+            "payments": bill.payments.select_related("paid_from"),
+            "form": form,
+            "can_manage": can_manage,
+            "cancel_form": CancelForm(),
+        },
+    )
+
+
+@site_view("expenses.manage")
+def bill_cancel(request, site, bill_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    bill = get_object_or_404(Bill, pk=bill_id, site=site)
+    form = CancelForm(request.POST)
+    if form.is_valid():
+        try:
+            services.cancel_bill(bill, request.user, form.cleaned_data["reason"])
+            messages.success(request, "Fatura iptal edildi; ters kayıt atıldı.")
+        except services.ExpenseError as exc:
+            messages.error(request, str(exc))
+    else:
+        messages.error(request, "İptal nedeni yazın.")
+    return redirect("expenses:bill_detail", site_id=site.pk, bill_id=bill.pk)
+
+
+@site_view("expenses.manage")
+def bill_payment_cancel(request, site, payment_id: int):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    payment = get_object_or_404(BillPayment, pk=payment_id, bill__site=site)
+    form = CancelForm(request.POST)
+    if form.is_valid():
+        try:
+            services.cancel_bill_payment(payment, request.user, form.cleaned_data["reason"])
+            messages.success(request, "Ödeme iptal edildi; ters kayıt atıldı.")
+        except services.ExpenseError as exc:
+            messages.error(request, str(exc))
+    else:
+        messages.error(request, "İptal nedeni yazın.")
+    return redirect("expenses:bill_detail", site_id=site.pk, bill_id=payment.bill_id)

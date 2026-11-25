@@ -478,3 +478,48 @@ def test_chart_completed_for_old_sites(site):
     count = Account.objects.filter(site=site).count()
     ledger.ensure_chart(site)
     assert Account.objects.filter(site=site).count() == count
+
+
+@pytest.mark.django_db
+def test_bill_partial_payments_and_cancel(site, admin_a):
+    payables = ledger.system_account(site, Account.Role.PAYABLES)
+    category = Account.objects.get(site=site, code="770.01")
+    bill = expenses.create_bill(
+        site,
+        day=date(2026, 11, 3),
+        due_date=date(2026, 11, 20),
+        category=category,
+        amount=100000,
+        description="Kasım ortak alan elektriği",
+        user=admin_a,
+    )
+    assert ledger.balance(category) == 100000 and ledger.balance(payables) == -100000
+    assert list(expenses.open_bills(site)) == [bill]
+    p1 = expenses.pay_bill(bill, day=date(2026, 11, 10), paid_from=bank(site), amount=40000, user=admin_a)
+    with pytest.raises(expenses.ExpenseError):
+        expenses.pay_bill(bill, day=date(2026, 11, 10), paid_from=bank(site), amount=60001, user=admin_a)
+    with pytest.raises(expenses.ExpenseError):
+        expenses.cancel_bill(bill, admin_a, "Yanlış")
+    expenses.pay_bill(bill, day=date(2026, 11, 15), paid_from=bank(site), amount=60000, user=admin_a)
+    bill.refresh_from_db()
+    assert bill.remaining == 0 and not expenses.open_bills(site).exists()
+    assert ledger.balance(payables) == 0 and ledger.balance(bank(site)) == -100000
+    expenses.cancel_bill_payment(p1, admin_a, "Mükerrer", day=date(2026, 11, 16))
+    bill.refresh_from_db()
+    assert bill.remaining == 40000 and ledger.balance(payables) == -40000
+
+
+@pytest.mark.django_db
+def test_bill_cancel_without_payment(site, admin_a):
+    category = Account.objects.get(site=site, code="770.06")
+    bill = expenses.create_bill(
+        site, day=NOV, category=category, amount=250000, description="Asansör bakımı", user=admin_a
+    )
+    expenses.cancel_bill(bill, admin_a, "Fatura geri alındı", day=NOV)
+    assert ledger.balance(category) == 0
+    with pytest.raises(expenses.ExpenseError):
+        expenses.pay_bill(bill, day=NOV, paid_from=bank(site), amount=1, user=admin_a)
+    with pytest.raises(expenses.ExpenseError):
+        expenses.create_bill(
+            site, day=NOV, due_date=date(2026, 10, 1), category=category, amount=1, description="x", user=admin_a
+        )

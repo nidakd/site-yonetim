@@ -93,6 +93,7 @@ SITE_MENU = [
             ("Borçlandırma", "billing:batch_list", "finance.view", ("billing:batch_",), "receipt"),
             ("Tahsilat", "payments:payment_list", "finance.view", ("payments:",), "cash"),
             ("Giderler", "expenses:expense_list", "finance.view", ("expenses:expense_",), "out"),
+            ("Ödenecek faturalar", "expenses:bill_list", "finance.view", ("expenses:bill_",), "invoice"),
             (
                 "Kasa ve banka",
                 "expenses:cash_bank",

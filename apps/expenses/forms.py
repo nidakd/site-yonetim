@@ -24,6 +24,41 @@ class ExpenseForm(forms.Form):
         self.fields["vendor"].queryset = Vendor.objects.filter(site=site)
 
 
+class BillForm(forms.Form):
+    date = forms.DateField(label="Fatura tarihi", widget=DateInput())
+    due_date = forms.DateField(label="Son ödeme tarihi", widget=DateInput(), required=False)
+    category = forms.ModelChoiceField(None, label="Gider kalemi", empty_label=None)
+    amount = MoneyField(label="Tutar")
+    description = forms.CharField(label="Açıklama", max_length=200)
+    vendor = forms.ModelChoiceField(Vendor.unscoped.none(), label="Tedarikçi", required=False, empty_label="—")
+    document_number = forms.CharField(label="Fatura / belge no", max_length=60, required=False)
+
+    def __init__(self, *args, site, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["date"].initial = timezone.localdate()
+        self.fields["category"].queryset = expense_accounts(site)
+        self.fields["vendor"].queryset = Vendor.objects.filter(site=site)
+
+    def clean(self):
+        data = super().clean()
+        if data.get("date") and data.get("due_date") and data["due_date"] < data["date"]:
+            self.add_error("due_date", "Son ödeme tarihi fatura tarihinden önce olamaz.")
+        return data
+
+
+class BillPaymentForm(forms.Form):
+    date = forms.DateField(label="Ödeme tarihi", widget=DateInput())
+    paid_from = forms.ModelChoiceField(None, label="Ödendiği hesap", empty_label=None)
+    amount = MoneyField(label="Tutar")
+
+    def __init__(self, *args, site, bill=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["date"].initial = timezone.localdate()
+        self.fields["paid_from"].queryset = cash_accounts(site)
+        if bill is not None:
+            self.fields["amount"].initial = bill.remaining
+
+
 class VendorForm(forms.ModelForm):
     class Meta:
         model = Vendor

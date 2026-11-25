@@ -9,7 +9,7 @@ from django.urls import reverse
 from apps.billing import services as billing
 from apps.billing.models import Charge, ChargeBatch, DuesAgreement
 from apps.core.context import tenant_context
-from apps.expenses.models import Expense, Transfer
+from apps.expenses.models import Bill, Expense, Transfer
 from apps.ledger.models import Account, PeriodLock
 from apps.payments.models import Payment
 from apps.people.models import Occupancy, Person
@@ -290,6 +290,7 @@ def test_field_staff_sees_units_but_not_finance(client, org_a, setup):
         "billing:batch_list",
         "payments:payment_list",
         "expenses:cash_bank",
+        "expenses:bill_list",
         "reports:debtors",
         "ledger:journal",
         "payments:payment_create",
@@ -308,6 +309,8 @@ def test_auditor_reads_but_cannot_write(client, org_a, setup):
     assert client.get(url("billing:batch_create", site)).status_code == 403
     assert client.post(url("ledger:settings", site), {"locked_until": "2026-11-30"}).status_code == 403
     assert client.post(url("expenses:expense_list", site), {"ted-name": "X"}).status_code == 403
+    assert client.get(url("expenses:bill_list", site)).status_code == 200
+    assert client.post(url("expenses:bill_list", site), {"description": "X"}).status_code == 403
 
 
 @pytest.mark.django_db
@@ -363,3 +366,51 @@ def test_seed_demo_builds_consistent_site():
         with connection.cursor() as cur:
             cur.execute("SELECT sum(debit) - sum(credit) FROM ledger_journalline")
             assert cur.fetchone()[0] == 0
+
+
+@pytest.mark.django_db
+def test_bill_create_pay_and_cancel_pages(client, admin_a, org_a, setup):
+    site = setup["site"]
+    panel_client(client, admin_a, org_a)
+    with tenant_context(org_a.pk):
+        bank = Account.objects.get(site=site, code="102.01")
+        lift = Account.objects.get(site=site, code="770.06")
+    assert client.get(url("expenses:bill_list", site)).status_code == 200
+    r = client.post(
+        url("expenses:bill_list", site),
+        {"date": "2026-11-03", "due_date": "2026-11-01", "category": lift.pk, "description": "x", "amount": "10"},
+    )
+    assert "önce olamaz" in r.content.decode()
+    r = client.post(
+        url("expenses:bill_list", site),
+        {
+            "date": "2026-11-03",
+            "due_date": "2026-11-20",
+            "category": lift.pk,
+            "description": "Kasım asansör bakımı",
+            "amount": "2.500,00",
+        },
+    )
+    assert r.status_code == 302
+    with tenant_context(org_a.pk):
+        bill = Bill.objects.get()
+    page = client.get(url("expenses:bill_detail", site, bill.pk)).content.decode()
+    assert "Kasım asansör bakımı" in page and "2.500,00" in page
+    r = client.post(
+        url("expenses:bill_detail", site, bill.pk), {"date": "2026-11-10", "paid_from": bank.pk, "amount": "3.000"}
+    )
+    assert "fazla olamaz" in r.content.decode()
+    client.post(
+        url("expenses:bill_detail", site, bill.pk), {"date": "2026-11-10", "paid_from": bank.pk, "amount": "1.000"}
+    )
+    with tenant_context(org_a.pk):
+        bill.refresh_from_db()
+        assert bill.remaining == 150000
+        payment = bill.payments.get()
+    client.post(url("expenses:bill_cancel", site, bill.pk), {"reason": "Yanlış"})
+    client.post(url("expenses:bill_payment_cancel", site, payment.pk), {"reason": "Mükerrer"})
+    client.post(url("expenses:bill_cancel", site, bill.pk), {"reason": "Yanlış"})
+    with tenant_context(org_a.pk):
+        bill.refresh_from_db()
+        assert bill.status == "cancelled" and bill.paid_amount == 0
+    assert "Henüz fatura yok" not in client.get(url("expenses:bill_list", site) + "?goster=tumu").content.decode()
